@@ -1,0 +1,14 @@
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: mikaylaelectra/stitcher
+    container_name: fastapi
+    volumes:
+      - ./app:/code/app
+      - ./media:/media
+    command: fastapi run app/main.py --port 8090
+    ports:
+          - "8090:8090"
