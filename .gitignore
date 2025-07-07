@@ -3,7 +3,7 @@
 
 media/*
 !media/__init__.py
-!.__init__.py
+!__init__.py
 *.onnx
 *.pt
 *.pth
