@@ -9,6 +9,6 @@ services:
     volumes:
       - ./app:/code/app
       - ./media:/media
-    command: stitcher_fastapi run app/main.py --port 8090
+    command: fastapi run app/main.py --port 8090
     ports:
           - "8090:8090"
