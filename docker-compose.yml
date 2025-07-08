@@ -5,10 +5,10 @@ services:
       context: .
       dockerfile: ./Dockerfile
     image: mikaylaelectra/stitcher
-    container_name: fastapi
+    container_name: stitcher_fastapi
     volumes:
       - ./app:/code/app
       - ./media:/media
-    command: fastapi run app/main.py --port 8090
+    command: stitcher_fastapi run app/main.py --port 8090
     ports:
           - "8090:8090"
