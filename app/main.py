@@ -10,14 +10,20 @@ from pathlib import Path
 from fastapi import BackgroundTasks, FastAPI, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from .stitching import AffineStitcher
+from sqlmodel import SQLModel, create_engine
 
 from . import constants
+from .database import SQLITE_URL
 from .utils import get_image_strs
 
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory=constants.MEDIA_PATH), name="static")
+
+engine = create_engine(SQLITE_URL, echo=True)
+
+SQLModel.metadata.create_all(engine)
 
 
 logger = logging.getLogger(__name__)
