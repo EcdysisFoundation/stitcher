@@ -41,7 +41,7 @@ def stitch_imgs(extract_dir: Path):
 
     try:
         panorama = stitcher.stitch(img_paths)
-        output = os.path.join(extract_dir, 'panorama.png')
+        output = os.path.join(extract_dir, 'panorama.jpg')
         cv.imwrite(output, panorama)
         logger.info('cv.imwrite to file: {0}'.format(output))
     except Exception as e:
