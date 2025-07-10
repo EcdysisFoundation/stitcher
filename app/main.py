@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from .stitching import AffineStitcher
 
 from . import constants
-from .database import (
+from .models import (
     UploadFileModel, create_upload_file, update_panorama_path,
     read_upload_files, create_db_and_tables)
 from .utils import get_image_strs
