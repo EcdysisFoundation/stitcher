@@ -9,6 +9,10 @@ services:
     volumes:
       - ./app:/code/app
       - ./media:/media
+      - sqlite_data:/data
     command: fastapi run app/main.py --port 8090
     ports:
           - "8090:8090"
+
+volumes:
+  sqlite_data:
