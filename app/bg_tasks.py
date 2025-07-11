@@ -11,11 +11,12 @@ def stitch_imgs(extract_dir: Path):
 
     settings = {
         "crop": False,
-        "confidence_threshold": 0.3
+        "confidence_threshold": 0.5
     }
     panorama_path = get_pano_path(extract_dir)
     img_paths = get_image_strs(extract_dir)
-    stitcher = AffineStitcher(**settings)
-    panorama = stitcher.stitch(img_paths)
-    cv.imwrite(panorama_path, panorama)
-    update_panorama_path(extract_dir, panorama_path)
+    if img_paths:
+        stitcher = AffineStitcher(**settings)
+        panorama = stitcher.stitch(img_paths)
+        cv.imwrite(panorama_path, panorama)
+        update_panorama_path(extract_dir, panorama_path)
