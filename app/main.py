@@ -15,7 +15,7 @@ from .bg_tasks import stitch_imgs
 from .models import (
     UploadFileModel, create_upload_file,
     read_upload_files, create_db_and_tables)
-
+from .utils import get_extract_path
 
 
 app = FastAPI()
@@ -58,9 +58,8 @@ async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks)
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             # Create a subdirectory for the extracted images
-            guid = str(uuid.uuid4())
-            extract_path = os.path.join(
-                constants.MEDIA_PATH, guid)
+            guid = uuid.uuid4()
+            extract_path = get_extract_path(guid)
             upload_dir_name = os.path.splitext(file.filename)[0]
             os.makedirs(extract_path, exist_ok=True)
             zip_ref.extractall(extract_path)
@@ -78,10 +77,10 @@ async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks)
         os.remove(zip_path) # Clean up in case of other errors
         return messages.update({"error": f"An error occurred: {str(e)}"})
 
-    try:
-        background_tasks.add_task(stitch_imgs, extract_path)
-    except Exception as e:
-        logger.info(e)
+    #try:
+    background_tasks.add_task(stitch_imgs, extract_path)
+    #except Exception as e:
+    #    logger.info(e)
 
     messages.update({
         'extract_path': extract_path,
@@ -92,3 +91,10 @@ async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks)
 @app.get("/list-upload-files/", response_model=list[UploadFileModel])
 def list_upload_files(offset: int = 0, limit: int = Query(default=100, le=100)):
     return read_upload_files(offset, limit)
+
+
+@app.get("/update-stitching/{guid}")
+async def update_stitching(guid: uuid.UUID, background_tasks: BackgroundTasks):
+    extract_path = get_extract_path(guid)
+    background_tasks.add_task(stitch_imgs, extract_path)
+    return {'message': f'Stitching process started for: {guid}'}

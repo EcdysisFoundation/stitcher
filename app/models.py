@@ -1,3 +1,6 @@
+from pydantic import validate_call
+from uuid import UUID
+from pathlib import Path
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 
@@ -21,15 +24,24 @@ def create_db_and_tables():
     SQLModel.metadata.create_all(ENGINE)
 
 
-def create_upload_file(guid, extract_path, upload_dir_name):
+@validate_call
+def create_upload_file(guid: UUID, extract_path: Path, upload_dir_name: str):
     rec = UploadFileModel(
-        guid=guid,
-        extract_path=extract_path,
+        guid=str(guid),
+        extract_path=str(extract_path),
         upload_dir_name=upload_dir_name
     )
     with Session(ENGINE) as session:
         session.add(rec)
         session.commit()
+
+
+def get_panorma_path(extract_path):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.extract_path == extract_path)
+        results = session.exec(statement)
+        rec = results.one()
+        return rec.panorama_path
 
 
 def update_panorama_path(extract_path, panorama_path):
