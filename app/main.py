@@ -1,21 +1,21 @@
-import cv2 as cv
 import logging
 import os
 import shutil
 import sys
 import uuid
 import zipfile
-from pathlib import Path
+
 
 from fastapi import BackgroundTasks, FastAPI, Query, UploadFile
 from fastapi.staticfiles import StaticFiles
-from .stitching import AffineStitcher
+
 
 from . import constants
+from .bg_tasks import stitch_imgs
 from .models import (
-    UploadFileModel, create_upload_file, update_panorama_path,
+    UploadFileModel, create_upload_file,
     read_upload_files, create_db_and_tables)
-from .utils import get_image_strs
+from .utils import get_extract_path
 
 
 app = FastAPI()
@@ -31,25 +31,6 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 
-def stitch_imgs(extract_dir: Path):
-
-    settings = {
-        "crop": False,
-        "confidence_threshold": 0.3
-    }
-    stitcher = AffineStitcher(**settings)
-    img_paths = get_image_strs(extract_dir)
-    panorama_path = os.path.join(extract_dir, 'panorama.jpg')
-
-    try:
-        panorama = stitcher.stitch(img_paths)
-        cv.imwrite(panorama_path, panorama)
-        logger.info('cv.imwrite wrote to file: {0}'.format(panorama_path))
-        update_panorama_path(extract_dir, panorama_path)
-    except Exception as e:
-        logger.info(e)
-
-
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
@@ -61,7 +42,10 @@ def read_root():
 
 
 @app.post("/upload-zip-images/")
-async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks):
+async def upload_zip_images(
+    file: UploadFile,
+    background_tasks: BackgroundTasks,
+    confidence_threshold: float = Query(default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
     messages = {}
     if not file.filename.endswith(".zip"):
         return messages.update({"warning": "Only ZIP files are allowed."})
@@ -77,9 +61,8 @@ async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks)
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             # Create a subdirectory for the extracted images
-            guid = str(uuid.uuid4())
-            extract_path = os.path.join(
-                constants.MEDIA_PATH, guid)
+            guid = uuid.uuid4()
+            extract_path = get_extract_path(guid)
             upload_dir_name = os.path.splitext(file.filename)[0]
             os.makedirs(extract_path, exist_ok=True)
             zip_ref.extractall(extract_path)
@@ -97,7 +80,10 @@ async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks)
         os.remove(zip_path) # Clean up in case of other errors
         return messages.update({"error": f"An error occurred: {str(e)}"})
 
-    background_tasks.add_task(stitch_imgs, extract_path)
+    #try:
+    background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
+    #except Exception as e:
+    #    logger.info(e)
 
     messages.update({
         'extract_path': extract_path,
@@ -108,3 +94,13 @@ async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks)
 @app.get("/list-upload-files/", response_model=list[UploadFileModel])
 def list_upload_files(offset: int = 0, limit: int = Query(default=100, le=100)):
     return read_upload_files(offset, limit)
+
+
+@app.get("/update-stitching/{guid}")
+async def update_stitching(
+    guid: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    confidence_threshold: float = Query(default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
+        extract_path = get_extract_path(guid)
+        background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
+        return {'message': f'Stitching process started for: {guid}'}

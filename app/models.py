@@ -1,3 +1,6 @@
+from pydantic import validate_call
+from uuid import UUID
+from pathlib import Path
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 
@@ -21,10 +24,11 @@ def create_db_and_tables():
     SQLModel.metadata.create_all(ENGINE)
 
 
-def create_upload_file(guid, extract_path, upload_dir_name):
+@validate_call
+def create_upload_file(guid: UUID, extract_path: Path, upload_dir_name: str):
     rec = UploadFileModel(
-        guid=guid,
-        extract_path=extract_path,
+        guid=str(guid),
+        extract_path=str(extract_path),
         upload_dir_name=upload_dir_name
     )
     with Session(ENGINE) as session:
@@ -32,22 +36,29 @@ def create_upload_file(guid, extract_path, upload_dir_name):
         session.commit()
 
 
-def update_panorama_path(extract_path, panorama_path):
+@validate_call
+def get_panorma_path(extract_path: Path):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.extract_path == extract_path)
+        statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
         rec = results.one()
-        rec.panorama_path = panorama_path
+        return rec.panorama_path
+
+
+@validate_call
+def update_panorama_path(extract_path: Path, panorama_path: Path):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
+        results = session.exec(statement)
+        rec = results.one()
+        rec.panorama_path = str(panorama_path)
         session.add(rec)
         session.commit()
         session.refresh(rec)
 
 
-def read_upload_files(offset, limit):
+@validate_call
+def read_upload_files(offset: int, limit: int):
     with Session(ENGINE) as session:
         recs = session.exec(select(UploadFileModel).offset(offset).limit(limit)).all()
         return recs
-
-
-if __name__ == '__main__':
-    create_db_and_tables()
