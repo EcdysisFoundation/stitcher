@@ -47,7 +47,3 @@ def read_upload_files(offset, limit):
     with Session(ENGINE) as session:
         recs = session.exec(select(UploadFileModel).offset(offset).limit(limit)).all()
         return recs
-
-
-if __name__ == '__main__':
-    create_db_and_tables()

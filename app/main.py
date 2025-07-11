@@ -1,21 +1,21 @@
-import cv2 as cv
 import logging
 import os
 import shutil
 import sys
 import uuid
 import zipfile
-from pathlib import Path
+
 
 from fastapi import BackgroundTasks, FastAPI, Query, UploadFile
 from fastapi.staticfiles import StaticFiles
-from .stitching import AffineStitcher
+
 
 from . import constants
+from .bg_tasks import stitch_imgs
 from .models import (
-    UploadFileModel, create_upload_file, update_panorama_path,
+    UploadFileModel, create_upload_file,
     read_upload_files, create_db_and_tables)
-from .utils import get_image_strs
+
 
 
 app = FastAPI()
@@ -29,25 +29,6 @@ stream_handler = logging.StreamHandler(sys.stdout)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
-
-
-def stitch_imgs(extract_dir: Path):
-
-    settings = {
-        "crop": False,
-        "confidence_threshold": 0.3
-    }
-    stitcher = AffineStitcher(**settings)
-    img_paths = get_image_strs(extract_dir)
-    panorama_path = os.path.join(extract_dir, 'panorama.jpg')
-
-    try:
-        panorama = stitcher.stitch(img_paths)
-        cv.imwrite(panorama_path, panorama)
-        logger.info('cv.imwrite wrote to file: {0}'.format(panorama_path))
-        update_panorama_path(extract_dir, panorama_path)
-    except Exception as e:
-        logger.info(e)
 
 
 @app.on_event("startup")
@@ -97,7 +78,10 @@ async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks)
         os.remove(zip_path) # Clean up in case of other errors
         return messages.update({"error": f"An error occurred: {str(e)}"})
 
-    background_tasks.add_task(stitch_imgs, extract_path)
+    try:
+        background_tasks.add_task(stitch_imgs, extract_path)
+    except Exception as e:
+        logger.info(e)
 
     messages.update({
         'extract_path': extract_path,
