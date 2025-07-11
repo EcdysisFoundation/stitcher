@@ -42,7 +42,10 @@ def read_root():
 
 
 @app.post("/upload-zip-images/")
-async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks):
+async def upload_zip_images(
+    file: UploadFile,
+    background_tasks: BackgroundTasks,
+    confidence_threshold: float = Query(default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
     messages = {}
     if not file.filename.endswith(".zip"):
         return messages.update({"warning": "Only ZIP files are allowed."})
@@ -78,7 +81,7 @@ async def upload_zip_images(file: UploadFile, background_tasks: BackgroundTasks)
         return messages.update({"error": f"An error occurred: {str(e)}"})
 
     #try:
-    background_tasks.add_task(stitch_imgs, extract_path)
+    background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
     #except Exception as e:
     #    logger.info(e)
 
@@ -94,7 +97,10 @@ def list_upload_files(offset: int = 0, limit: int = Query(default=100, le=100)):
 
 
 @app.get("/update-stitching/{guid}")
-async def update_stitching(guid: uuid.UUID, background_tasks: BackgroundTasks):
-    extract_path = get_extract_path(guid)
-    background_tasks.add_task(stitch_imgs, extract_path)
-    return {'message': f'Stitching process started for: {guid}'}
+async def update_stitching(
+    guid: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    confidence_threshold: float = Query(default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
+        extract_path = get_extract_path(guid)
+        background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
+        return {'message': f'Stitching process started for: {guid}'}

@@ -36,26 +36,29 @@ def create_upload_file(guid: UUID, extract_path: Path, upload_dir_name: str):
         session.commit()
 
 
-def get_panorma_path(extract_path):
+@validate_call
+def get_panorma_path(extract_path: Path):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.extract_path == extract_path)
+        statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
         rec = results.one()
         return rec.panorama_path
 
 
-def update_panorama_path(extract_path, panorama_path):
+@validate_call
+def update_panorama_path(extract_path: Path, panorama_path: Path):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.extract_path == extract_path)
+        statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
         rec = results.one()
-        rec.panorama_path = panorama_path
+        rec.panorama_path = str(panorama_path)
         session.add(rec)
         session.commit()
         session.refresh(rec)
 
 
-def read_upload_files(offset, limit):
+@validate_call
+def read_upload_files(offset: int, limit: int):
     with Session(ENGINE) as session:
         recs = session.exec(select(UploadFileModel).offset(offset).limit(limit)).all()
         return recs
