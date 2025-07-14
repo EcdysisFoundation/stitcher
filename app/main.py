@@ -80,10 +80,10 @@ async def upload_zip_images(
         os.remove(zip_path) # Clean up in case of other errors
         return messages.update({"error": f"An error occurred: {str(e)}"})
 
-    #try:
-    background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
-    #except Exception as e:
-    #    logger.info(e)
+    try:
+        background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
+    except Exception as e:
+        logger.info(e)
 
     messages.update({
         'extract_path': extract_path,
