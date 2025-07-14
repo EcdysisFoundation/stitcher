@@ -1,7 +1,5 @@
-import logging
 import os
 import shutil
-import sys
 import uuid
 import zipfile
 
@@ -20,15 +18,8 @@ from .utils import get_extract_path
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory=constants.MEDIA_PATH), name="static")
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-# Create a StreamHandler that outputs to sys.stdout
-stream_handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
+app.mount("/static", StaticFiles(directory=constants.MEDIA_PATH), name="static")
 
 
 @app.on_event("startup")
@@ -80,10 +71,7 @@ async def upload_zip_images(
         os.remove(zip_path) # Clean up in case of other errors
         return messages.update({"error": f"An error occurred: {str(e)}"})
 
-    try:
-        background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
-    except Exception as e:
-        logger.info(e)
+    background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
 
     messages.update({
         'extract_path': extract_path,
