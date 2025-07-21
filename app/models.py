@@ -1,7 +1,12 @@
+import uuid
+from typing import List
 from pydantic import validate_call
 from uuid import UUID
 from pathlib import Path
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlmodel import (
+    Field, Session, SQLModel, create_engine, select, JSON, Column
+)
+from fastapi.encoders import jsonable_encoder
 
 
 SQLITE_FILE_NAME = '/data/database.db'
@@ -18,6 +23,7 @@ class UploadFileModel(SQLModel, table=True):
     upload_dir_name: str = Field(index=True)
     panorama_path: str | None = Field(default=None)
     approved: bool | None = Field(default=None)
+    predictions: List[dict] = Field(sa_column=Column(JSON))
 
 
 def create_db_and_tables():
@@ -62,3 +68,15 @@ def read_upload_files(offset: int, limit: int):
     with Session(ENGINE) as session:
         recs = session.exec(select(UploadFileModel).offset(offset).limit(limit)).all()
         return recs
+
+
+@validate_call
+def update_predictions_post(guid: uuid.UUID, predictions: List[dict]):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        results = session.exec(statement)
+        rec = results.one()
+        rec.predictions = jsonable_encoder(predictions)
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)

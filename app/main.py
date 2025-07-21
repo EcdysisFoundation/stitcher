@@ -1,22 +1,44 @@
+import logging
 import os
 import shutil
+import sys
+import time
 import uuid
 import zipfile
+from typing import List
 
 
-from fastapi import BackgroundTasks, FastAPI, Query, UploadFile
+from fastapi import BackgroundTasks, FastAPI, Query, UploadFile, Request
 from fastapi.staticfiles import StaticFiles
-
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from . import constants
 from .bg_tasks import stitch_imgs
 from .models import (
     UploadFileModel, create_upload_file,
-    read_upload_files, create_db_and_tables)
+    read_upload_files, create_db_and_tables,
+    update_predictions_post)
 from .utils import get_extract_path
 
 
+LOGGER = logging.getLogger(__name__)
+
+stream_handler = logging.StreamHandler(sys.stdout)
+LOGGER.addHandler(stream_handler)
+LOGGER.setLevel(logging.DEBUG)
+
+
+class LogRequestsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        LOGGER.info(f"Request: {request.method} {request.url.path} | Processed in {process_time:.4f} seconds | HEADERS: {request.headers} | Client.Host: {request.client.host} | Status: {response.status_code}")
+        return response
+
+
 app = FastAPI()
+app.add_middleware(LogRequestsMiddleware)
 
 
 app.mount("/static", StaticFiles(directory=constants.MEDIA_PATH), name="static")
@@ -84,7 +106,7 @@ def list_upload_files(offset: int = 0, limit: int = Query(default=100, le=100)):
     return read_upload_files(offset, limit)
 
 
-@app.get("/update-stitching/{guid}")
+@app.post("/update-stitching/")
 async def update_stitching(
     guid: uuid.UUID,
     background_tasks: BackgroundTasks,
@@ -92,3 +114,9 @@ async def update_stitching(
         extract_path = get_extract_path(guid)
         background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
         return {'message': f'Stitching process started for: {guid}'}
+
+
+@app.post("/update-predictions/")
+async def update_predictions(guid: uuid.UUID, predictions: List[dict]):
+    update_predictions_post(guid, predictions)
+    return {'message': f'Updated predictions for: {guid}'}
