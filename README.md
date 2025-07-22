@@ -1,5 +1,15 @@
 # stitcher
 
+## Docker
+
+To start the app
+
+    docker compose up -d
+
+To see the console logs
+
+    docker compose logs --tail=1000 --follow
+
 ## database
 
 The SQLite database file (data/database.db) is in a Docker volume.
@@ -10,7 +20,7 @@ We use Alembic to manage database migrations. To use Alembic, we need to run the
 
 To check the state of Alembic, run the following command. All other alembic commands need to be ran in the same way, where the alembic command `check` is replaced with the other alembic commands.
 
-    docker exec -it CONTAINER_ID sh -c "alembic --config alembic.ini check"
+    docker exec -it CONTAINER_ID sh -c "alembic --config app/alembic.ini check"
 
 
 To add a column to a model, for example
