@@ -3,6 +3,8 @@ from pathlib import Path
 from pydantic import validate_call
 from uuid import UUID
 
+#from label_studio_sdk.client import LabelStudio
+
 from . import constants
 from .models import get_panorma_path
 
@@ -38,3 +40,33 @@ def get_pano_path(extract_dir):
                            str(filenumber)
 
     return os.path.join(extract_dir, new_filename + constants.PANO_EXTENSION)
+
+
+@validate_call
+def send_label_studio(guids: list[UUID]):
+    # local dev
+    api_token = '273f90bb7501f179b8fe2bff8c669700fef1a221'
+    api_url = 'http://localhost:8080/'
+
+    #ls = LabelStudio(base_url=api_url, api_key=api_token)
+    project = 'SAHI'
+
+    def get_projects(self):
+        # get existing projects
+        result = {}
+        created_projects = self.ls.projects.list()
+        for i in created_projects:
+            result.update({i.title: i.id})
+        print(result)
+        # ensure project is a project
+        if self.project not in result.keys():
+            print('Warning: {0} is not a project.'.format(
+                self.project))
+            return None
+        return result
+
+    projects = get_projects()
+    if project not in projects.keys():
+        print(f'Did not find project {project}, ending....')
+        return None
+

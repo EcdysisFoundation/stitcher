@@ -17,6 +17,7 @@ from .bg_tasks import stitch_imgs
 from .models import (
     UploadFileModel, create_upload_file,
     read_upload_files, create_db_and_tables,
+    update_sent_label_studio,
     update_predictions_post)
 from .utils import get_extract_path
 
@@ -102,8 +103,12 @@ async def upload_zip_images(
 
 
 @app.get("/list-upload-files/", response_model=list[UploadFileModel])
-def list_upload_files(offset: int = 0, limit: int = Query(default=100, le=100)):
-    return read_upload_files(offset, limit)
+def list_upload_files(
+    offset: int = 0,
+    limit: int = Query(default=100, le=100),
+    label_studio_filter: bool = Query(
+         default=False, description=constants.LABEL_STUDIO_FILTER_DESC)):
+        return read_upload_files(offset, limit, label_studio_filter)
 
 
 @app.post("/update-stitching/")
@@ -120,3 +125,10 @@ async def update_stitching(
 async def update_predictions(guid: uuid.UUID, predictions: List[dict]):
     update_predictions_post(guid, predictions)
     return {'message': f'Updated predictions for: {guid}'}
+
+
+@app.post("/sent_label_studio/")
+async def sent_label_studio(guids: List[uuid.UUID]):
+     for guid in guids:
+        update_sent_label_studio(guid)
+     return {'message': f'set sent_label_studio to true for {len(guids)} records'}

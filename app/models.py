@@ -4,7 +4,7 @@ from pydantic import validate_call
 from uuid import UUID
 from pathlib import Path
 from sqlmodel import (
-    Field, Session, SQLModel, create_engine, select, JSON, Column
+    Field, Session, SQLModel, create_engine, select, JSON, Column, col
 )
 from fastapi.encoders import jsonable_encoder
 
@@ -24,6 +24,7 @@ class UploadFileModel(SQLModel, table=True):
     panorama_path: str | None = Field(default=None)
     approved: bool | None = Field(default=None)
     predictions: List[dict] = Field(sa_column=Column(JSON))
+    sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
 
 
 def create_db_and_tables():
@@ -64,10 +65,15 @@ def update_panorama_path(extract_path: Path, panorama_path: Path):
 
 
 @validate_call
-def read_upload_files(offset: int, limit: int):
+def read_upload_files(offset: int, limit: int, label_studio_filter: bool):
     with Session(ENGINE) as session:
-        recs = session.exec(select(UploadFileModel).offset(offset).limit(limit)).all()
-        return recs
+        statement = select(UploadFileModel)
+        if label_studio_filter:
+            subquery = select(UploadFileModel.id).where(col(UploadFileModel.panorama_path) == col(UploadFileModel.sent_label_studio))
+            statement = statement.where(UploadFileModel.id.not_in(subquery), UploadFileModel.panorama_path.is_not(None))
+        statement = statement.offset(offset).limit(limit)
+        result = session.exec(statement).all()
+        return result
 
 
 @validate_call
@@ -77,6 +83,18 @@ def update_predictions_post(guid: uuid.UUID, predictions: List[dict]):
         results = session.exec(statement)
         rec = results.one()
         rec.predictions = jsonable_encoder(predictions)
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+
+
+@validate_call
+def update_sent_label_studio(guid: uuid.UUID):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        results = session.exec(statement)
+        rec = results.one()
+        rec.sent_label_studio = rec.panorama_path
         session.add(rec)
         session.commit()
         session.refresh(rec)
