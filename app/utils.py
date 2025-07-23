@@ -3,8 +3,6 @@ from pathlib import Path
 from pydantic import validate_call
 from uuid import UUID
 
-#from label_studio_sdk.client import LabelStudio
-
 from . import constants
 from .models import get_panorma_path
 
