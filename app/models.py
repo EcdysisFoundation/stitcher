@@ -3,6 +3,7 @@ from typing import List
 from pydantic import validate_call
 from uuid import UUID
 from pathlib import Path
+from fastapi import HTTPException, status
 from sqlmodel import (
     Field, Session, SQLModel, create_engine, select, JSON, Column, col
 )
@@ -48,7 +49,13 @@ def get_panorma_path(extract_path: Path):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
-        rec = results.one()
+        if not results:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
         return rec.panorama_path
 
 
@@ -57,7 +64,11 @@ def update_panorama_path(extract_path: Path, panorama_path: Path):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
-        rec = results.one()
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
         rec.panorama_path = str(panorama_path)
         if rec.predictions:
             # clear the predictions since they are no longer valid
@@ -84,7 +95,11 @@ def update_predictions_post(guid: uuid.UUID, predictions: List[dict]):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
-        rec = results.one()
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
         rec.predictions = jsonable_encoder(predictions)
         session.add(rec)
         session.commit()
@@ -96,8 +111,26 @@ def update_sent_label_studio(guid: uuid.UUID):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
-        rec = results.one()
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
         rec.sent_label_studio = rec.panorama_path
         session.add(rec)
         session.commit()
         session.refresh(rec)
+
+
+@validate_call
+def delete_by_guid(guid: uuid.UUID):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        results = session.exec(statement)
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
+        session.delete(rec)
+        session.commit()
