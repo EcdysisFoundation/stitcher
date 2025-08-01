@@ -8,7 +8,7 @@ import zipfile
 from typing import List
 
 
-from fastapi import BackgroundTasks, FastAPI, Query, UploadFile, Request
+from fastapi import BackgroundTasks, FastAPI, Query, UploadFile, Request, status
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -16,6 +16,7 @@ from . import constants
 from .bg_tasks import stitch_imgs
 from .models import (
     UploadFileModel, create_upload_file,
+    delete_by_guid,
     read_upload_files, create_db_and_tables,
     update_sent_label_studio,
     update_predictions_post)
@@ -153,3 +154,9 @@ async def sent_label_studio(guid: uuid.UUID):
     """
     update_sent_label_studio(guid)
     return {'message': f'set sent_label_studio to true for {guid}'}
+
+
+@app.delete("/delete/{guid}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_guid(guid: uuid.UUID):
+    delete_by_guid(guid)
+    return {'message': f'delete record for {guid}'}
