@@ -34,7 +34,6 @@ def stitch_imgs(extract_dir: Path, conf: float):
         try:
             panorama = stitcher.stitch(img_paths)
             cv.imwrite(panorama_path, panorama)
+            update_panorama_path(extract_dir, panorama_path)
         except Exception as e:
             logger.info(e)
-
-        update_panorama_path(extract_dir, panorama_path)
