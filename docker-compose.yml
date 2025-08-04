@@ -6,6 +6,10 @@ services:
       dockerfile: ./Dockerfile
     image: mikaylaelectra/stitcher
     container_name: stitcher_fastapi
+    deploy:
+      resources:
+        limits:
+          memory: 20g
     volumes:
       - ./app:/code/app
       - /pool1/srv/label-studio/mydata/stitchermedia:/media
