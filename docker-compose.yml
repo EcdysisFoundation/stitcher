@@ -8,7 +8,7 @@ services:
     container_name: stitcher_fastapi
     volumes:
       - ./app:/code/app
-      - /pool1/srv/repos/label-studio/mydata/stitchermedia:/media
+      - /pool1/srv/label-studio/mydata/stitchermedia:/media
       - sqlite_data:/data
     command: fastapi run app/main.py --port 8090
     ports:
