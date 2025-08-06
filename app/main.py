@@ -134,16 +134,10 @@ def list_upload_files(
 @app.get('/uploads')
 def index_datatables(request: Request, start: int, length: int = 10):
     params = request.query_params.get
-    order = "id"
-    if params("order[0][column]"):
-        order = params("columns[" + params("order[0][column]") + "][data]")
-    direction = params("order[0][dir]", "asc")
     search = params("search[value]")
-
-    results = datatables_uploads(direction, start, length, search)
+    results = datatables_uploads(start, length, search)
     results.update({'draw': params('draw')})
     return results
-
 
 
 @app.post("/update-stitching/")

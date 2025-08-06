@@ -137,23 +137,20 @@ def delete_by_guid(guid: uuid.UUID):
 
 
 @validate_call
-def datatables_uploads(direction: str, start: int, length: int, search: str):
+def datatables_uploads(start: int, length: int, search: str):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel)
         count_statement = select(func.count()).select_from(UploadFileModel)
-        recordsTotal = session.exec(count_statement).one()
+        records_total = session.exec(count_statement).one()
         if search:
             statement = statement.where(UploadFileModel.upload_dir_name.like(f"%{search}%"))
-        statement = statement.order_by(UploadFileModel.upload_dir_name)
-        if direction == 'desc':
-            statement = statement.order_by(UploadFileModel.upload_dir_name.desc())
-        else:
-            statement = statement.order_by(UploadFileModel.upload_dir_name)
-        recordsFiltered = len(session.exec(statement).all())
+        statement = statement.order_by(UploadFileModel.id.desc())
+        rf = select(func.count()).select_from(statement)
+        records_filtered = session.exec(rf).one()
         statement = statement.offset(start).limit(length)
         results = session.exec(statement).all()
         return {
-            "recordsTotal": recordsTotal,
-            "recordsFiltered": recordsFiltered,
+            "recordsTotal": records_total,
+            "recordsFiltered": records_filtered,
             "data": results
         }
