@@ -8,7 +8,11 @@ import zipfile
 from typing import List
 
 
-from fastapi import BackgroundTasks, FastAPI, Query, UploadFile, Request, status
+from fastapi import (
+    BackgroundTasks, FastAPI,
+    Query, UploadFile, Request, status
+)
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -16,6 +20,7 @@ from . import constants
 from .bg_tasks import stitch_imgs
 from .models import (
     UploadFileModel, create_upload_file,
+    datatables_uploads,
     delete_by_guid,
     read_upload_files, create_db_and_tables,
     update_sent_label_studio,
@@ -41,8 +46,12 @@ class LogRequestsMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI()
 app.add_middleware(LogRequestsMiddleware)
-
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_methods=['*'],
+    allow_headers=['*']
+)
 app.mount("/static", StaticFiles(directory=constants.MEDIA_PATH), name="static")
 
 
@@ -120,6 +129,21 @@ def list_upload_files(
     List the uploaded zip files and their related information.
     """
     return read_upload_files(offset, limit, label_studio_filter)
+
+
+@app.get('/uploads')
+def index_datatables(request: Request, start: int, length: int = 10):
+    params = request.query_params.get
+    order = "id"
+    if params("order[0][column]"):
+        order = params("columns[" + params("order[0][column]") + "][data]")
+    direction = params("order[0][dir]", "asc")
+    search = params("search[value]")
+
+    results = datatables_uploads(direction, start, length, search)
+    results.update({'draw': params('draw')})
+    return results
+
 
 
 @app.post("/update-stitching/")
