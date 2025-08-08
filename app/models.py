@@ -92,8 +92,9 @@ def update_panorama_path(extract_path: Path, panorama_path: Path):
                 detail="Item not found")
         rec.panorama_path = str(panorama_path)
         if rec.predictions:
-            # clear the predictions since they are no longer valid
+            # clear fields that are no longer valid
             rec.predictions = []
+            rec.approved = None
         session.add(rec)
         session.commit()
         session.refresh(rec)
