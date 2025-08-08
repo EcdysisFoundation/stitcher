@@ -19,14 +19,17 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from . import constants
 from .bg_tasks import stitch_imgs
 from .models import (
-    UploadFileModel, create_upload_file,
+    UploadFileModel,
+    UploadFileUpdate,
+    create_upload_file,
     datatables_uploads,
     delete_by_guid,
     read_upload_files,
     read_upload_file,
     create_db_and_tables,
     update_sent_label_studio,
-    update_predictions_post)
+    update_predictions_post,
+    update_upload_file_update)
 from .utils import get_extract_path
 
 
@@ -107,10 +110,10 @@ async def upload_zip_images(
 
         messages.update({"zip_message": f"Images from {file.filename} extracted successfully to {extract_path}"})
     except zipfile.BadZipFile:
-        os.remove(zip_path) # Clean up invalid zip file
+        os.remove(zip_path)  # Clean up invalid zip file
         return messages.update({"error": "Invalid ZIP file."})
     except Exception as e:
-        os.remove(zip_path) # Clean up in case of other errors
+        os.remove(zip_path)  # Clean up in case of other errors
         return messages.update({"error": f"An error occurred: {str(e)}"})
 
     background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
@@ -186,3 +189,8 @@ async def sent_label_studio(guid: uuid.UUID):
 async def delete_guid(guid: uuid.UUID):
     delete_by_guid(guid)
     return {'message': f'delete record for {guid}'}
+
+
+@app.patch("/update-record/{guid}", response_model=UploadFileModel)
+def update_record(guid: uuid.UUID, upload_file: UploadFileUpdate):
+    return update_upload_file_update(guid, upload_file)

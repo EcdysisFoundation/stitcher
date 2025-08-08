@@ -33,6 +33,26 @@ def create_db_and_tables():
     SQLModel.metadata.create_all(ENGINE)
 
 
+class UploadFileUpdate(SQLModel):
+    approved: bool | None = None
+
+
+@validate_call
+def update_upload_file_update(guid: UUID, upload_file: UploadFileUpdate):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
+        try:
+            rec = session.exec(statement).one()
+        except NoResultFound:
+            raise HTTPException(status_code=404, detail="Item not found")
+        rec_data = upload_file.model_dump(exclude_unset=True)
+        rec.sqlmodel_update(rec_data)
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+        return rec
+
+
 @validate_call
 def create_upload_file(guid: UUID, extract_path: Path, upload_dir_name: str):
     rec = UploadFileModel(
