@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlmodel import (
     Field, Session, SQLModel, create_engine, select, JSON, Column, col, func
 )
+from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
 
 
@@ -88,6 +89,16 @@ def read_upload_files(offset: int, limit: int, label_studio_filter: bool):
         statement = statement.offset(offset).limit(limit)
         result = session.exec(statement).all()
         return result
+
+
+@validate_call
+def read_upload_file(guid: uuid.UUID):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
+        try:
+            return session.exec(statement).one()
+        except NoResultFound:
+            raise HTTPException(status_code=404, detail="Item not found")
 
 
 @validate_call

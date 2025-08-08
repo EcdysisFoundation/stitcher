@@ -22,7 +22,9 @@ from .models import (
     UploadFileModel, create_upload_file,
     datatables_uploads,
     delete_by_guid,
-    read_upload_files, create_db_and_tables,
+    read_upload_files,
+    read_upload_file,
+    create_db_and_tables,
     update_sent_label_studio,
     update_predictions_post)
 from .utils import get_extract_path
@@ -131,7 +133,12 @@ def list_upload_files(
     return read_upload_files(offset, limit, label_studio_filter)
 
 
-@app.get('/uploads')
+@app.get("/list-upload/", response_model=UploadFileModel)
+async def list_upload_file(guid: uuid.UUID):
+    return read_upload_file(guid)
+
+
+@app.get("/uploads")
 def index_datatables(request: Request, start: int, length: int = 10):
     params = request.query_params.get
     search = params("search[value]")
