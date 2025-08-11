@@ -191,6 +191,6 @@ async def delete_guid(guid: uuid.UUID):
     return {'message': f'delete record for {guid}'}
 
 
-@app.patch("/update-record/{guid}", response_model=UploadFileModel)
+@app.patch("/update-record/{guid}")
 def update_record(guid: uuid.UUID, upload_file: UploadFileUpdate):
     return update_upload_file_update(guid, upload_file)

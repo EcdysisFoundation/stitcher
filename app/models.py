@@ -1,6 +1,6 @@
 import uuid
-from typing import List
-from pydantic import validate_call
+from typing import List, Optional
+from pydantic import BaseModel, validate_call
 from uuid import UUID
 from pathlib import Path
 from fastapi import HTTPException, status
@@ -33,8 +33,8 @@ def create_db_and_tables():
     SQLModel.metadata.create_all(ENGINE)
 
 
-class UploadFileUpdate(SQLModel):
-    approved: bool | None = None
+class UploadFileUpdate(BaseModel):
+    approved: Optional[bool] = None
 
 
 @validate_call
