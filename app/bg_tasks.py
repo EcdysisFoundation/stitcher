@@ -1,4 +1,5 @@
 
+import asyncio
 import logging
 import sys
 import cv2 as cv
@@ -18,22 +19,26 @@ formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(messag
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
+task_lock = asyncio.Lock()
+
 
 @validate_call
-def stitch_imgs(extract_dir: Path, conf: float):
+async def background_stitch_imgs(extract_dir: Path, conf: float):
+    async with task_lock:
 
-    settings = {
-        'crop': False,
-        'confidence_threshold': conf
-    }
-    panorama_path = get_pano_path(extract_dir)
-    img_paths = get_image_strs(extract_dir)
-    if len(img_paths) > 1:
-        stitcher = AffineStitcher(**settings)
+        settings = {
+            'crop': False,
+            'confidence_threshold': conf
+        }
+        panorama_path = get_pano_path(extract_dir)
+        img_paths = get_image_strs(extract_dir)
 
-        try:
-            panorama = stitcher.stitch(img_paths)
-            cv.imwrite(panorama_path, panorama)
-            update_panorama_path(extract_dir, panorama_path)
-        except Exception as e:
-            logger.info(e)
+        if len(img_paths) > 1:
+            stitcher = AffineStitcher(**settings)
+            try:
+                panorama = stitcher.stitch(img_paths)
+                cv.imwrite(panorama_path, panorama)
+                update_panorama_path(extract_dir, panorama_path)
+            except Exception as e:
+                logger.info(e)
+

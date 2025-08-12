@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from . import constants
-from .bg_tasks import stitch_imgs
+from .bg_tasks import background_stitch_imgs
 from .models import (
     UploadFileModel,
     UploadFileUpdate,
@@ -116,7 +116,7 @@ async def upload_zip_images(
         os.remove(zip_path)  # Clean up in case of other errors
         return messages.update({"error": f"An error occurred: {str(e)}"})
 
-    background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
+    background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
 
     messages.update({
         'extract_path': extract_path,
@@ -161,7 +161,7 @@ async def update_stitching(
     if applicable. Changing the default confidence may be helpful if a previous stitching did not work well.
     """
     extract_path = get_extract_path(guid)
-    background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
+    background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
     return {'message': f'Stitching process started for: {guid}'}
 
 
