@@ -8,8 +8,12 @@ from .models import get_panorma_path
 
 
 def get_image_paths(dir):
-    return [path for path in Path(dir).rglob(
-        f'{constants.IMAGES_PREFIX}*')]
+    """
+    Get the images that have the prefix,
+    and sort assuming fixed length numberic characters such as prefix_001.
+    """
+    return sorted([path for path in Path(dir).rglob(
+        f'{constants.IMAGES_PREFIX}*')])
 
 
 def get_image_strs(dir):
