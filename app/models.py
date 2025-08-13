@@ -1,12 +1,13 @@
 import uuid
-from typing import List
-from pydantic import validate_call
+from typing import List, Optional
+from pydantic import BaseModel, validate_call
 from uuid import UUID
 from pathlib import Path
 from fastapi import HTTPException, status
 from sqlmodel import (
-    Field, Session, SQLModel, create_engine, select, JSON, Column, col
+    Field, Session, SQLModel, create_engine, select, JSON, Column, col, func
 )
+from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
 
 
@@ -30,6 +31,26 @@ class UploadFileModel(SQLModel, table=True):
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(ENGINE)
+
+
+class UploadFileUpdate(BaseModel):
+    approved: Optional[bool] = None
+
+
+@validate_call
+def update_upload_file_update(guid: UUID, upload_file: UploadFileUpdate):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
+        try:
+            rec = session.exec(statement).one()
+        except NoResultFound:
+            raise HTTPException(status_code=404, detail="Item not found")
+        rec_data = upload_file.model_dump(exclude_unset=True)
+        rec.sqlmodel_update(rec_data)
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+        return rec
 
 
 @validate_call
@@ -71,8 +92,9 @@ def update_panorama_path(extract_path: Path, panorama_path: Path):
                 detail="Item not found")
         rec.panorama_path = str(panorama_path)
         if rec.predictions:
-            # clear the predictions since they are no longer valid
+            # clear fields that are no longer valid
             rec.predictions = []
+            rec.approved = None
         session.add(rec)
         session.commit()
         session.refresh(rec)
@@ -88,6 +110,16 @@ def read_upload_files(offset: int, limit: int, label_studio_filter: bool):
         statement = statement.offset(offset).limit(limit)
         result = session.exec(statement).all()
         return result
+
+
+@validate_call
+def read_upload_file(guid: uuid.UUID):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
+        try:
+            return session.exec(statement).one()
+        except NoResultFound:
+            raise HTTPException(status_code=404, detail="Item not found")
 
 
 @validate_call
@@ -134,3 +166,23 @@ def delete_by_guid(guid: uuid.UUID):
                 detail="Item not found")
         session.delete(rec)
         session.commit()
+
+
+@validate_call
+def datatables_uploads(start: int, length: int, search: str):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel)
+        count_statement = select(func.count()).select_from(UploadFileModel)
+        records_total = session.exec(count_statement).one()
+        if search:
+            statement = statement.where(UploadFileModel.upload_dir_name.like(f"%{search}%"))
+        statement = statement.order_by(UploadFileModel.id.desc())
+        rf = select(func.count()).select_from(statement)
+        records_filtered = session.exec(rf).one()
+        statement = statement.offset(start).limit(length)
+        results = session.exec(statement).all()
+        return {
+            "recordsTotal": records_total,
+            "recordsFiltered": records_filtered,
+            "data": results
+        }

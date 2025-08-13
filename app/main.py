@@ -8,18 +8,28 @@ import zipfile
 from typing import List
 
 
-from fastapi import BackgroundTasks, FastAPI, Query, UploadFile, Request, status
+from fastapi import (
+    BackgroundTasks, FastAPI,
+    Query, UploadFile, Request, status
+)
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from . import constants
-from .bg_tasks import stitch_imgs
+from .bg_tasks import background_stitch_imgs
 from .models import (
-    UploadFileModel, create_upload_file,
+    UploadFileModel,
+    UploadFileUpdate,
+    create_upload_file,
+    datatables_uploads,
     delete_by_guid,
-    read_upload_files, create_db_and_tables,
+    read_upload_files,
+    read_upload_file,
+    create_db_and_tables,
     update_sent_label_studio,
-    update_predictions_post)
+    update_predictions_post,
+    update_upload_file_update)
 from .utils import get_extract_path
 
 
@@ -41,8 +51,12 @@ class LogRequestsMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI()
 app.add_middleware(LogRequestsMiddleware)
-
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_methods=['*'],
+    allow_headers=['*']
+)
 app.mount("/static", StaticFiles(directory=constants.MEDIA_PATH), name="static")
 
 
@@ -96,13 +110,13 @@ async def upload_zip_images(
 
         messages.update({"zip_message": f"Images from {file.filename} extracted successfully to {extract_path}"})
     except zipfile.BadZipFile:
-        os.remove(zip_path) # Clean up invalid zip file
+        os.remove(zip_path)  # Clean up invalid zip file
         return messages.update({"error": "Invalid ZIP file."})
     except Exception as e:
-        os.remove(zip_path) # Clean up in case of other errors
+        os.remove(zip_path)  # Clean up in case of other errors
         return messages.update({"error": f"An error occurred: {str(e)}"})
 
-    background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
+    background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
 
     messages.update({
         'extract_path': extract_path,
@@ -122,6 +136,20 @@ def list_upload_files(
     return read_upload_files(offset, limit, label_studio_filter)
 
 
+@app.get("/list-upload/", response_model=UploadFileModel)
+async def list_upload_file(guid: uuid.UUID):
+    return read_upload_file(guid)
+
+
+@app.get("/uploads")
+def index_datatables(request: Request, start: int, length: int = 10):
+    params = request.query_params.get
+    search = params("search[value]")
+    results = datatables_uploads(start, length, search)
+    results.update({'draw': params('draw')})
+    return results
+
+
 @app.post("/update-stitching/")
 async def update_stitching(
     guid: uuid.UUID,
@@ -133,7 +161,7 @@ async def update_stitching(
     if applicable. Changing the default confidence may be helpful if a previous stitching did not work well.
     """
     extract_path = get_extract_path(guid)
-    background_tasks.add_task(stitch_imgs, extract_path, confidence_threshold)
+    background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
     return {'message': f'Stitching process started for: {guid}'}
 
 
@@ -161,3 +189,8 @@ async def sent_label_studio(guid: uuid.UUID):
 async def delete_guid(guid: uuid.UUID):
     delete_by_guid(guid)
     return {'message': f'delete record for {guid}'}
+
+
+@app.patch("/update-record/{guid}")
+def update_record(guid: uuid.UUID, upload_file: UploadFileUpdate):
+    return update_upload_file_update(guid, upload_file)
