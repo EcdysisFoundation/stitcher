@@ -1,5 +1,8 @@
 # stitcher
 
+# stitching
+The stitching process uses code from https://github.com/OpenStitching/stitching . Instead of installing theirs from pypi, the code is in directory /stitching to allow for modifications and easier integration into FastAPI
+
 ## Docker
 
 To start the app
