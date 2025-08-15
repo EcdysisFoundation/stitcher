@@ -30,7 +30,10 @@ class Subsetter:
 
         if len(indices) < len(img_names):
             warnings.warn(
-                "Not all images are included in the final panorama. If this is not intended, use the 'matches_graph_dot_file' parameter to analyze your matches. You might want to lower the 'confidence_threshold' or try another 'detector' to include all your images.",  # noqa: E501
+                "Not all images are included in the final panorama. " \
+                "'If this is not intended, use the 'matches_graph_dot_file' parameter to analyze your matches. " \
+                "You might want to lower the 'confidence_threshold' or try another 'detector' to include all your images. " \
+                f"len(indices) is {len(indices)} which is less than len(img_names), {len(img_names)}",  # noqa: E501
                 StitchingWarning,
             )
 
