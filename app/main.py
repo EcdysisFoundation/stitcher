@@ -16,7 +16,7 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.status import HTTP_400_BAD_REQUEST
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_405_METHOD_NOT_ALLOWED
 
 from . import constants
 from .bg_tasks import background_stitch_imgs
@@ -166,6 +166,13 @@ async def update_stitching(
     Create a new panorma from an existing upload. This will clear any predictions on the previous panorma,
     if applicable. Changing the default confidence may be helpful if a previous stitching did not work well.
     """
+    record = read_upload_file(guid)
+    if record.approved is not None:
+        HTTP_405_METHOD_NOT_ALLOWED
+        raise HTTPException(
+            status_code=HTTP_405_METHOD_NOT_ALLOWED,
+            detail=f"Not Allowed: record.approved is set to {record.approved}"
+        )
     extract_path = get_extract_path(guid)
     background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
     return {'message': f'Stitching process started for: {guid}'}
