@@ -133,7 +133,7 @@ async def upload_zip_images(
 @app.get("/list-upload-files/", response_model=list[UploadFileModel])
 def list_upload_files(
     offset: int = 0,
-    limit: int = Query(default=100, le=100),
+    limit: int = Query(default=10, le=100),
     label_studio_filter: bool = Query(
          default=False, description=constants.LABEL_STUDIO_FILTER_DESC)):
     """
