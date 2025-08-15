@@ -84,7 +84,9 @@ async def upload_zip_images(
     Only the prefix, 'image_r' is used in the process. Other images and files may exist in the
     zip file but will not be attempted to be used unless they include this prefix.
     """
-    allowed_types = ['application/zip']
+    allowed_types = [
+        'application/zip', 'application/octet-stream',
+        'application/x-zip', 'application/x-zip-compressed']
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
