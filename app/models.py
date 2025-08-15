@@ -66,7 +66,7 @@ def create_upload_file(guid: UUID, extract_path: Path, upload_dir_name: str):
 
 
 @validate_call
-def get_panorma_path(extract_path: Path):
+def get_panorama_path(extract_path: Path):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)

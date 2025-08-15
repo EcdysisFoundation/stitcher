@@ -4,7 +4,7 @@ from pydantic import validate_call
 from uuid import UUID
 
 from . import constants
-from .models import get_panorma_path
+from .models import get_panorama_path
 
 
 def get_image_paths(dir):
@@ -27,7 +27,7 @@ def get_extract_path(guid: UUID):
 
 def get_pano_path(extract_dir):
 
-    panorama_path = get_panorma_path(extract_dir)
+    panorama_path = get_panorama_path(extract_dir)
     if not panorama_path:
         new_filename = constants.PANO_NAME_BASE
     else:

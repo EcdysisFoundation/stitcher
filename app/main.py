@@ -78,8 +78,8 @@ async def upload_zip_images(
     background_tasks: BackgroundTasks,
         confidence_threshold: float = Query(default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
     """
-    Upload a zip file of images intended to be stitched together into a single panorma.
-    Each image for the panorma should be prefixed with 'image_r', such as 'image_r1_c1'
+    Upload a zip file of images intended to be stitched together into a single panorama.
+    Each image for the panorama should be prefixed with 'image_r', such as 'image_r1_c1'
     indicates the image in the position of the first row and column.
     Only the prefix, 'image_r' is used in the process. Other images and files may exist in the
     zip file but will not be attempted to be used unless they include this prefix.
@@ -165,7 +165,7 @@ async def update_stitching(
     confidence_threshold: float = Query(
         default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
     """
-    Create a new panorma from an existing upload. This will clear any predictions on the previous panorma,
+    Create a new panorama from an existing upload. This will clear any predictions on the previous panorama,
     if applicable. Changing the default confidence may be helpful if a previous stitching did not work well.
     """
     record = read_upload_file(guid)
@@ -183,7 +183,7 @@ async def update_stitching(
 @app.post("/update-predictions/")
 async def update_predictions(guid: uuid.UUID, predictions: List[dict]):
     """
-    After performing inference on the panorma, enter the predictions here.
+    After performing inference on the panorama, enter the predictions here.
     """
     update_predictions_post(guid, predictions)
     return {'message': f'Updated predictions for: {guid}'}
@@ -193,7 +193,7 @@ async def update_predictions(guid: uuid.UUID, predictions: List[dict]):
 async def sent_label_studio(guid: uuid.UUID):
     """
     After sending the panoroma to label studio, use this endpoint to indicate the
-    panorma version (panorma_path) sent to label studio by entering the guid
+    panorama version (panorama_path) sent to label studio by entering the guid
     of the record.
     """
     update_sent_label_studio(guid)
