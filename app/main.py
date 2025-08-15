@@ -9,12 +9,14 @@ from typing import List
 
 
 from fastapi import (
-    BackgroundTasks, FastAPI,
+    BackgroundTasks,
+    HTTPException, FastAPI,
     Query, UploadFile, Request, status
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_405_METHOD_NOT_ALLOWED
 
 from . import constants
 from .bg_tasks import background_stitch_imgs
@@ -82,10 +84,13 @@ async def upload_zip_images(
     Only the prefix, 'image_r' is used in the process. Other images and files may exist in the
     zip file but will not be attempted to be used unless they include this prefix.
     """
+    allowed_types = ['application/zip']
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Only {', '.join(allowed_types)} are allowed."
+        )
     messages = {}
-    if not file.filename.endswith(".zip"):
-        return messages.update({"warning": "Only ZIP files are allowed."})
-
     # Create a temporary path for the uploaded ZIP file
     zip_path = os.path.join(constants.MEDIA_PATH, file.filename)
 
@@ -111,23 +116,24 @@ async def upload_zip_images(
         messages.update({"zip_message": f"Images from {file.filename} extracted successfully to {extract_path}"})
     except zipfile.BadZipFile:
         os.remove(zip_path)  # Clean up invalid zip file
-        return messages.update({"error": "Invalid ZIP file."})
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail="Invalid zip file, zipfile.BadZipFile"
+        )
     except Exception as e:
         os.remove(zip_path)  # Clean up in case of other errors
-        return messages.update({"error": f"An error occurred: {str(e)}"})
-
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail=f"Exception: {e}"
+        )
     background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
-
-    messages.update({
-        'extract_path': extract_path,
-    })
     return messages
 
 
 @app.get("/list-upload-files/", response_model=list[UploadFileModel])
 def list_upload_files(
     offset: int = 0,
-    limit: int = Query(default=100, le=100),
+    limit: int = Query(default=10, le=100),
     label_studio_filter: bool = Query(
          default=False, description=constants.LABEL_STUDIO_FILTER_DESC)):
     """
@@ -160,6 +166,13 @@ async def update_stitching(
     Create a new panorma from an existing upload. This will clear any predictions on the previous panorma,
     if applicable. Changing the default confidence may be helpful if a previous stitching did not work well.
     """
+    record = read_upload_file(guid)
+    if record.approved is not None:
+        HTTP_405_METHOD_NOT_ALLOWED
+        raise HTTPException(
+            status_code=HTTP_405_METHOD_NOT_ALLOWED,
+            detail=f"Not Allowed: record.approved is set to {record.approved}"
+        )
     extract_path = get_extract_path(guid)
     background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
     return {'message': f'Stitching process started for: {guid}'}
