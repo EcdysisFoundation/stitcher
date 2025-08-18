@@ -86,6 +86,12 @@ class SeamFinder:
             (128, 128, 128),  # Gray
             (000, 000, 128),  # Dark Blue
             (000, 128, 255),  # Light Blue
+            (207, 252, 3),  # Yellow Green
+            (130, 47, 5),  # Red Orange
+            (181, 147, 9),  # Yellow Orange
+            (9, 181, 86),  # Green Blue
+            (77, 60, 176),  # Blue Purple
+            (176, 60, 172),  # Purple Red
         ),
     ):
         imgs = colored_img_generator(sizes, colors)
@@ -98,7 +104,7 @@ class SeamFinder:
 def colored_img_generator(sizes, colors):
     if len(sizes) + 1 > len(colors):
         warnings.warn(
-            "Without additional colors, there will be seam masks with identical colors",  # noqa: E501
+            f"Without additional colors, there will be seam masks with identical colors: {len(sizes) + 1} vs {len(colors)} available",  # noqa: E501
             StitchingWarning,
         )
 
