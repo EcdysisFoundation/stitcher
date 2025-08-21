@@ -28,17 +28,19 @@ async def background_stitch_imgs(extract_dir: Path, conf: float):
 
         settings = {
             'crop': False,
-            'confidence_threshold': conf
+            'confidence_threshold': conf,
+            'blend_strength': 1  # 5 is default
         }
         panorama_path = get_pano_path(extract_dir)
         img_paths = get_image_strs(extract_dir)
 
         if len(img_paths) > 1:
+            cv.ocl.setUseOpenCL(False)
             stitcher = AffineStitcher(**settings)
             try:
                 panorama = stitcher.stitch(img_paths)
+                logger.info(f'writing panorma to {panorama_path}')
                 cv.imwrite(panorama_path, panorama)
                 update_panorama_path(extract_dir, panorama_path)
             except Exception as e:
                 logger.info(e)
-

@@ -15,6 +15,7 @@ app/images/*
 !app/images/__init__.py
 local_files
 database.db
+.vscode
 
 ############################
 
