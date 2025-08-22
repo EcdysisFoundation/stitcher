@@ -29,6 +29,7 @@ class UploadFileModel(SQLModel, table=True):
     predictions: List[dict] = Field(sa_column=Column(JSON))
     sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
     stitching_exception: str | None = Field(default=None)
+    stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
     created_at: datetime.datetime | None
 
@@ -101,6 +102,23 @@ def update_panorama_path(extract_path: Path, panorama_path: Path):
             # clear fields that are no longer valid
             rec.predictions = []
             rec.approved = None
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+
+
+@validate_call
+def record_stitching_exception(extract_path: Path, e: str):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
+        results = session.exec(statement)
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
+        rec.stitching_exception = e
+        rec.stitching_exception_at = datetime.datetime.now(datetime.timezone.utc)
         session.add(rec)
         session.commit()
         session.refresh(rec)

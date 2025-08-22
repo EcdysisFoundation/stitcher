@@ -6,7 +6,7 @@ import cv2 as cv
 from pathlib import Path
 from pydantic import validate_call
 
-from .models import update_panorama_path
+from .models import update_panorama_path, record_stitching_exception
 from .stitching import AffineStitcher
 from .utils import get_image_strs, get_pano_path
 
@@ -44,3 +44,4 @@ async def background_stitch_imgs(extract_dir: Path, conf: float):
                 update_panorama_path(extract_dir, panorama_path)
             except Exception as e:
                 logger.info(e)
+                record_stitching_exception(extract_dir, str(e))
