@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from typing import List, Optional
 from pydantic import BaseModel, validate_call
@@ -27,6 +28,9 @@ class UploadFileModel(SQLModel, table=True):
     approved: bool | None = Field(default=None)
     predictions: List[dict] = Field(sa_column=Column(JSON))
     sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
+    stitching_exception: str | None = Field(default=None)
+    panorma_timestamp: datetime.datetime | None
+    created_at: datetime.datetime | None
 
 
 def create_db_and_tables():
@@ -58,7 +62,8 @@ def create_upload_file(guid: UUID, extract_path: Path, upload_dir_name: str):
     rec = UploadFileModel(
         guid=str(guid),
         extract_path=str(extract_path),
-        upload_dir_name=upload_dir_name
+        upload_dir_name=upload_dir_name,
+        created_at=datetime.datetime.now(datetime.timezone.utc)
     )
     with Session(ENGINE) as session:
         session.add(rec)
@@ -91,6 +96,7 @@ def update_panorama_path(extract_path: Path, panorama_path: Path):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
         rec.panorama_path = str(panorama_path)
+        rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
         if rec.predictions:
             # clear fields that are no longer valid
             rec.predictions = []

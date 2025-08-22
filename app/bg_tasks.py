@@ -29,7 +29,7 @@ async def background_stitch_imgs(extract_dir: Path, conf: float):
         settings = {
             'crop': False,
             'confidence_threshold': conf,
-            'blend_strength': 1  # 5 is default
+            'blend_strength': 1
         }
         panorama_path = get_pano_path(extract_dir)
         img_paths = get_image_strs(extract_dir)
