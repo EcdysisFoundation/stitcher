@@ -3,6 +3,8 @@ from statistics import median
 import cv2 as cv
 import numpy as np
 
+from .stitching_error import StitchingError
+
 
 class Warper:
     """https://docs.opencv.org/4.x/da/db8/classcv_1_1detail_1_1RotationWarper.html"""
@@ -49,6 +51,14 @@ class Warper:
             cv.INTER_LINEAR,
             cv.BORDER_REFLECT,
         )
+        # check dimensions
+        start_dimensions = img.shape
+        end_dimensions = warped_image.shape
+        diff_1 = abs(end_dimensions[0] - start_dimensions[0])
+        diff_2 = abs(end_dimensions[1] - start_dimensions[1])
+        if diff_1 > 2 * start_dimensions[0] or diff_2 > 2 * start_dimensions[1]:
+            raise StitchingError("Warping image failed failed, more than doubling of "
+                                 f"end_dimensions {end_dimensions} from start_dimensions {start_dimensions}. ")
         return warped_image
 
     def create_and_warp_masks(self, sizes, cameras, aspect=1):

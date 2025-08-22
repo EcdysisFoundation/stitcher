@@ -1,0 +1,11 @@
+  # for testing in a conda environment, see stitch_local.py
+  name: stitcher-stitching
+  channels:
+    - defaults
+  dependencies:
+    - python=3.12
+    - pip
+    - pip:
+      - opencv-python-headless==4.12.0.88
+      - largestinteriorrectangle
+      - numpy

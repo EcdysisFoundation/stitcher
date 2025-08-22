@@ -15,7 +15,7 @@ To see the console logs
 
 ## database
 
-The SQLite database file (data/database.db) is in a Docker volume.
+The SQLite database file (data/database.db) is in a Docker volume. A blank database will be created when starting a volume, but this will be incompatible with any existing alembic files in the repo. Replacing the data/database.db file with a copy of the production database will make it compatible with the migration files.
 
 ### migrations
 
@@ -25,14 +25,16 @@ To check the state of Alembic, run the following command. All other alembic comm
 
     docker exec -it CONTAINER_ID sh -c "alembic --config app/alembic.ini check"
 
-
 To add a column to a model, for example
-
 
     alembic revision --autogenerate -m "added my column"
 
-Review the generated migraitons file, then run it with
+when through docker, it is written,
+
+    docker exec -it CONTAINER_ID sh -c "alembic --config app/alembic.ini revision --autogenerate -m "added my column""
+
+Review the generated migraitons file, then run this command
 
     alembic upgrade head
 
-To undo the most recent migration, run `alembic downgrade -1` and then delete the migration file.
+To undo a recent migration, run `alembic downgrade REVISION_ID` and then delete the migration file.
