@@ -57,8 +57,8 @@ class Warper:
         diff_1 = abs(end_dimensions[0] - start_dimensions[0])
         diff_2 = abs(end_dimensions[1] - start_dimensions[1])
         if diff_1 > 2 * start_dimensions[0] or diff_2 > 2 * start_dimensions[1]:
-            raise StitchingError("Warping image failed failed, more than doubling of "
-                                 f"end_dimensions {end_dimensions} from start_dimensions {start_dimensions}. ")
+            raise StitchingError("Warping image failed, more than doubling of "
+                                 f"end_dimensions {end_dimensions} from start_dimensions {start_dimensions}.")
         return warped_image
 
     def create_and_warp_masks(self, sizes, cameras, aspect=1):

@@ -129,8 +129,7 @@ def read_upload_files(offset: int, limit: int, label_studio_filter: bool):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel)
         if label_studio_filter:
-            subquery = select(UploadFileModel.id).where(col(UploadFileModel.panorama_path) == col(UploadFileModel.sent_label_studio))
-            statement = statement.where(UploadFileModel.id.not_in(subquery), UploadFileModel.panorama_path.is_not(None))
+            statement = select(UploadFileModel.id).where(col(UploadFileModel.approved) is True)
         statement = statement.offset(offset).limit(limit)
         result = session.exec(statement).all()
         return result
