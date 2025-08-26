@@ -23,6 +23,7 @@ from .bg_tasks import background_stitch_imgs
 from .models import (
     UploadFileModel,
     UploadFileUpdate,
+    UploadFileModelPublic,
     create_upload_file,
     datatables_uploads,
     delete_by_guid,
@@ -132,16 +133,16 @@ async def upload_zip_images(
     return messages
 
 
-@app.get("/list-upload-files/", response_model=list[UploadFileModel])
+@app.get("/list-upload-files/", response_model=list[UploadFileModelPublic])
 def list_upload_files(
-    offset: int = 0,
-    limit: int = Query(default=10, le=100),
-    label_studio_filter: bool = Query(
-         default=False, description=constants.LABEL_STUDIO_FILTER_DESC)):
+        offset: int = 0,
+        limit: int = Query(default=10, le=100),
+        approved: bool = Query(default=None)):
     """
     List the uploaded zip files and their related information.
     """
-    return read_upload_files(offset, limit, label_studio_filter)
+    records = read_upload_files(offset, limit, approved)
+    return records
 
 
 @app.get("/list-upload/", response_model=UploadFileModel)
