@@ -19,19 +19,22 @@ CONNECT_ARGS = {'check_same_thread': False}
 ENGINE = create_engine(SQLITE_URL, echo=True, connect_args=CONNECT_ARGS)
 
 
-class UploadFileModel(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class UploadFileModelBase(SQLModel):
     guid: str | None = Field(default=None)
     extract_path: str | None = Field(default=None)
     upload_dir_name: str = Field(index=True)
     panorama_path: str | None = Field(default=None)
     approved: bool | None = Field(default=None)
-    predictions: List[dict] = Field(sa_column=Column(JSON))
+    predictions: List[dict] | None = Field(sa_column=Column(JSON))
     sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
     stitching_exception: str | None = Field(default=None)
     stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
     created_at: datetime.datetime | None
+
+
+class UploadFileModel(UploadFileModelBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
 
 
 def create_db_and_tables():
@@ -40,6 +43,10 @@ def create_db_and_tables():
 
 class UploadFileUpdate(BaseModel):
     approved: Optional[bool] = None
+
+
+class UploadFileModelPublic(UploadFileModelBase):
+    id: int
 
 
 @validate_call
@@ -125,11 +132,11 @@ def record_stitching_exception(extract_path: Path, e: str):
 
 
 @validate_call
-def read_upload_files(offset: int, limit: int, label_studio_filter: bool):
+def read_upload_files(offset: int, limit: int, approved: bool | None):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel)
-        if label_studio_filter:
-            statement = select(UploadFileModel.id).where(col(UploadFileModel.approved) is True)
+        if approved is not None:
+            statement = statement.where(UploadFileModel.approved == approved)
         statement = statement.offset(offset).limit(limit)
         result = session.exec(statement).all()
         return result
