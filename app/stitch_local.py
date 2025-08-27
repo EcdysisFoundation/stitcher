@@ -18,12 +18,12 @@ if __name__ == '__main__':
     Use libraries defined in environment.yml
     """
 
-    img_dir_name = 'a0160cd5-37df-4341-89db-d30bf931a103' # problematic
+    img_dir_name = 'test1_works'
     panroma_filename = 'panorama_local.jpg'
 
     settings = {
         'crop': False,
-        'confidence_threshold': 0.5,
+        'confidence_threshold': 0.6,
         # 'blender_type': 'feather',
         'blend_strength': 1,  # 5 is default
         # 'finder': 'voronoi'
@@ -40,8 +40,8 @@ if __name__ == '__main__':
     # use with /stitching module
     stitcher = AffineStitcher(**settings)
     # use stitcher.stitch_verbose to generate images each stage
-    # stitcher.stitch_verbose(imgs, verbose_dir=img_directory)
-    panorama = stitcher.stitch(imgs)
+    panorama = stitcher.stitch_verbose(imgs, verbose_dir=img_directory)
+    # panorama = stitcher.stitch(imgs)
     cv.imwrite(img_directory + panroma_filename, panorama)
 
     # Alternative: Use without /stitching module intervention
