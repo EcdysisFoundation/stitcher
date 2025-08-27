@@ -11,7 +11,7 @@ class FeatureDetector:
 
     DETECTOR_CHOICES = OrderedDict()
 
-    DETECTOR_CHOICES["orb"] = cv.ORB.create
+    DETECTOR_CHOICES["orb"] = cv.ORB_create
     DETECTOR_CHOICES["sift"] = cv.SIFT_create
     DETECTOR_CHOICES["brisk"] = cv.BRISK_create
     DETECTOR_CHOICES["akaze"] = cv.AKAZE_create
@@ -20,6 +20,18 @@ class FeatureDetector:
 
     def __init__(self, detector=DEFAULT_DETECTOR, **kwargs):
         self.detector = FeatureDetector.DETECTOR_CHOICES[detector](**kwargs)
+        if detector == self.DEFAULT_DETECTOR:
+            # print('default settings are..')
+            # print(f'max_features: {self.detector.getMaxFeatures()}')
+            # print(f'scale_factor: {self.detector.getScaleFactor()}')
+            # print(f'n_levels: {self.detector.getNLevels()}')
+            # print(f'edge_threshold: {self.detector.getEdgeThreshold()}')
+            # print(f'patch_size: {self.detector.getPatchSize()}')
+            # print('custom settings are ...')
+            self.detector.setMaxFeatures(2000)
+            self.detector.setPatchSize(62)
+            # print(f'max_features: {self.detector.getMaxFeatures()}')
+            # print(f'patch_size: {self.detector.getPatchSize()}')
 
     def detect_features(self, img, *args, **kwargs):
         return cv.detail.computeImageFeatures2(self.detector, img, *args, **kwargs)
