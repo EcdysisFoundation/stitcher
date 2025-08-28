@@ -22,7 +22,6 @@ class Stitcher:
     DEFAULT_SETTINGS = {
         "medium_megapix": Images.Resolution.MEDIUM.value,
         "detector": FeatureDetector.DEFAULT_DETECTOR,
-        "nfeatures": 500,
         "matcher_type": FeatureMatcher.DEFAULT_MATCHER,
         "range_width": FeatureMatcher.DEFAULT_RANGE_WIDTH,
         "try_use_gpu": False,
@@ -60,10 +59,7 @@ class Stitcher:
         self.medium_megapix = args.medium_megapix
         self.low_megapix = args.low_megapix
         self.final_megapix = args.final_megapix
-        if args.detector in ("orb", "sift"):
-            self.detector = FeatureDetector(args.detector, nfeatures=args.nfeatures)
-        else:
-            self.detector = FeatureDetector(args.detector)
+        self.detector = FeatureDetector(args.detector)
         match_conf = FeatureMatcher.get_match_conf(args.match_conf, args.detector)
         self.matcher = FeatureMatcher(
             args.matcher_type,
