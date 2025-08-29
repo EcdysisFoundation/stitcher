@@ -24,6 +24,7 @@ class UploadFileModelBase(SQLModel):
     extract_path: str | None = Field(default=None)
     upload_dir_name: str = Field(index=True)
     panorama_path: str | None = Field(default=None)
+    panorama_confidence: float | None = Field(default=None)
     approved: bool | None = Field(default=None)
     predictions: List[dict] | None = Field(sa_column=Column(JSON))
     sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
@@ -94,7 +95,7 @@ def get_panorama_path(extract_path: Path):
 
 
 @validate_call
-def update_panorama_path(extract_path: Path, panorama_path: Path):
+def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confidence: float):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
@@ -104,6 +105,7 @@ def update_panorama_path(extract_path: Path, panorama_path: Path):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
         rec.panorama_path = str(panorama_path)
+        rec.panorama_confidence = panorama_confidence
         rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
         if rec.predictions:
             # clear fields that are no longer valid

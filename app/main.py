@@ -178,7 +178,7 @@ async def update_stitching(
         )
     extract_path = get_extract_path(guid)
     background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
-    return {'message': f'Stitching process started for: {guid}'}
+    return {'message': f'Stitching process started for: {guid} with confidence_threshold of {confidence_threshold}'}
 
 
 @app.post("/update-predictions/")

@@ -41,7 +41,7 @@ async def background_stitch_imgs(extract_dir: Path, conf: float):
                 panorama = stitcher.stitch(img_paths)
                 logger.info(f'writing panorma to {panorama_path}')
                 cv.imwrite(panorama_path, panorama)
-                update_panorama_path(extract_dir, panorama_path)
+                update_panorama_path(extract_dir, panorama_path, conf)
             except Exception as e:
                 logger.info(e)
                 record_stitching_exception(extract_dir, str(e))
