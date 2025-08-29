@@ -27,6 +27,7 @@ class UploadFileModelBase(SQLModel):
     panorama_confidence: float | None = Field(default=None)
     approved: bool | None = Field(default=None)
     predictions: List[dict] | None = Field(sa_column=Column(JSON))
+    predictions_timestamp: datetime.datetime | None
     sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
     stitching_exception: str | None = Field(default=None)
     stitching_exception_at: datetime.datetime | None
@@ -111,6 +112,7 @@ def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confi
             # clear fields that are no longer valid
             rec.predictions = []
             rec.approved = None
+            rec.predictions_timestamp = None
         session.add(rec)
         session.commit()
         session.refresh(rec)
@@ -165,6 +167,7 @@ def update_predictions_post(guid: uuid.UUID, predictions: List[dict]):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
         rec.predictions = jsonable_encoder(predictions)
+        rec.predictions_timestamp = datetime.datetime.now(datetime.timezone.utc)
         session.add(rec)
         session.commit()
         session.refresh(rec)
