@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import shutil
@@ -30,6 +31,7 @@ from .models import (
     read_upload_files,
     read_upload_file,
     create_db_and_tables,
+    update_annotations_post,
     update_sent_label_studio,
     update_predictions_post,
     update_upload_file_update)
@@ -210,3 +212,40 @@ async def delete_guid(guid: uuid.UUID):
 @app.patch("/update-record/{guid}")
 def update_record(guid: uuid.UUID, upload_file: UploadFileUpdate):
     return update_upload_file_update(guid, upload_file)
+
+
+@app.post("/upload-annotations/")
+async def upload_annotations(file: UploadFile):
+    """
+    Upload a .json file of annotations from label-studio json-min export.
+    """
+    allowed_types = ['application/json']
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Only {', '.join(allowed_types)} are allowed."
+        )
+    messages = {
+        'guids_not_found': [],
+        'errors': [],
+        'updated_annotations': 0}
+    temp_path = os.path.join(constants.MEDIA_PATH, file.filename)
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    with open(temp_path, 'r') as file:
+        data = json.load(file)
+        for d in data:
+            guid = None
+            annotations = None
+            try:
+                guid = d['meta']['guid']
+                annotations = d['label']
+            except Exception:
+                messages['errors'].append('missing keys in record')
+            if guid:
+                try:
+                    update_annotations_post(guid, annotations)
+                    messages['updated_annotations'] += 1
+                except HTTPException:
+                    messages['guids_not_found'].append(guid)
+    return messages

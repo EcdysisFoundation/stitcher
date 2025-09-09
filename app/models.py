@@ -33,6 +33,7 @@ class UploadFileModelBase(SQLModel):
     stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
     created_at: datetime.datetime | None
+    annotations: List[dict] | None = Field(sa_column=Column(JSON))
 
 
 class UploadFileModel(UploadFileModelBase, table=True):
@@ -221,3 +222,19 @@ def datatables_uploads(start: int, length: int, search: str):
             "recordsFiltered": records_filtered,
             "data": results
         }
+
+
+@validate_call
+def update_annotations_post(guid: uuid.UUID, annotations: List[dict]):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        results = session.exec(statement)
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
+        rec.annotations = jsonable_encoder(annotations)
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
