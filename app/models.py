@@ -218,7 +218,8 @@ def datatables_uploads(start: int, length: int, search: str):
         count_statement = select(func.count()).select_from(UploadFileModel)
         records_total = session.exec(count_statement).one()
         if search:
-            statement = statement.where(UploadFileModel.upload_dir_name.like(f"%{search}%"))
+            statement = statement.where(
+                UploadFileModel.upload_dir_name.like(f"%{search}%") | UploadFileModel.guid.like(f"%{search}%"))
         statement = statement.order_by(UploadFileModel.id.desc())
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
