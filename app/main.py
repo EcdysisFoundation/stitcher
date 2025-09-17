@@ -240,11 +240,13 @@ async def upload_annotations(file: UploadFile):
             try:
                 guid = d['meta']['guid']
                 annotations = d['label']
+                annotator = d['annotator']
+                updated_at = d['updated_at']
             except Exception:
                 messages['errors'].append('missing keys in record')
             if guid:
                 try:
-                    update_annotations_post(guid, annotations)
+                    update_annotations_post(guid, annotations, annotator, updated_at)
                     messages['updated_annotations'] += 1
                 except HTTPException:
                     messages['guids_not_found'].append(guid)

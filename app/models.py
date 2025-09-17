@@ -34,6 +34,8 @@ class UploadFileModelBase(SQLModel):
     panorma_timestamp: datetime.datetime | None
     created_at: datetime.datetime | None
     annotations: List[dict] | None = Field(sa_column=Column(JSON))
+    annotator: int | None
+    annotations_updated_at: str | None
 
 
 class UploadFileModel(UploadFileModelBase, table=True):
@@ -109,11 +111,14 @@ def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confi
         rec.panorama_path = str(panorama_path)
         rec.panorama_confidence = panorama_confidence
         rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
-        if rec.predictions:
-            # clear fields that are no longer valid
-            rec.predictions = []
-            rec.approved = None
-            rec.predictions_timestamp = None
+        # clear fields that are no longer valid
+        rec.predictions = []
+        rec.approved = None
+        rec.predictions_timestamp = None
+        rec.annotations = []
+        rec.annotator = None
+        rec.annotations_updated_at = None
+        rec.sent_label_studio = None
         session.add(rec)
         session.commit()
         session.refresh(rec)
@@ -218,7 +223,8 @@ def datatables_uploads(start: int, length: int, search: str):
         count_statement = select(func.count()).select_from(UploadFileModel)
         records_total = session.exec(count_statement).one()
         if search:
-            statement = statement.where(UploadFileModel.upload_dir_name.like(f"%{search}%"))
+            statement = statement.where(
+                UploadFileModel.upload_dir_name.like(f"%{search}%") | UploadFileModel.guid.like(f"%{search}%"))
         statement = statement.order_by(UploadFileModel.id.desc())
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
@@ -232,7 +238,7 @@ def datatables_uploads(start: int, length: int, search: str):
 
 
 @validate_call
-def update_annotations_post(guid: uuid.UUID, annotations: List[dict]):
+def update_annotations_post(guid: uuid.UUID, annotations: List[dict], annotator: int, updated_at: str):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
@@ -242,6 +248,8 @@ def update_annotations_post(guid: uuid.UUID, annotations: List[dict]):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
         rec.annotations = jsonable_encoder(annotations)
+        rec.annotator = annotator
+        rec.annotations_updated_at = updated_at
         session.add(rec)
         session.commit()
         session.refresh(rec)
