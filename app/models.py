@@ -144,14 +144,7 @@ def record_stitching_exception(extract_path: Path, e: str):
 @validate_call
 def read_upload_files(offset: int, limit: int, approved: bool | None):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel.guid,
-                           UploadFileModel.extract_path,
-                           UploadFileModel.upload_dir_name,
-                           UploadFileModel.panorama_path,
-                           UploadFileModel.approved,
-                           UploadFileModel.sent_label_studio,
-                           UploadFileModel.panorma_timestamp,
-                           UploadFileModel.created_at)
+        statement = select(UploadFileModel)
         if approved is not None:
             statement = statement.where(UploadFileModel.approved == approved)
         statement = statement.offset(offset).limit(limit)
