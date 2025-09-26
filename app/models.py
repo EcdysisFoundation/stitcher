@@ -63,7 +63,7 @@ def update_upload_file_update(guid: UUID, upload_file: UploadFileUpdate):
         except NoResultFound:
             raise HTTPException(status_code=404, detail="Item not found")
         rec_data = upload_file.model_dump(exclude_unset=True)
-        rec.sqlmodel_update(rec_data)
+        rec.approved = rec_data['approved']
         session.add(rec)
         session.commit()
         session.refresh(rec)
