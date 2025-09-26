@@ -48,6 +48,7 @@ def create_db_and_tables():
 
 class UploadFileUpdate(BaseModel):
     approved: Optional[bool] = None
+    upload_dir_name: str
 
 
 class UploadFileModelPublic(UploadFileModelBase):
@@ -63,7 +64,7 @@ def update_upload_file_update(guid: UUID, upload_file: UploadFileUpdate):
         except NoResultFound:
             raise HTTPException(status_code=404, detail="Item not found")
         rec_data = upload_file.model_dump(exclude_unset=True)
-        rec.approved = rec_data['approved']
+        rec.sqlmodel_update(rec_data)
         session.add(rec)
         session.commit()
         session.refresh(rec)
