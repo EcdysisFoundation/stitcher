@@ -36,6 +36,8 @@ class UploadFileModelBase(SQLModel):
     annotations: List[dict] | None = Field(sa_column=Column(JSON))
     annotator: int | None
     annotations_updated_at: str | None
+    bugbox_sample_id: int | None
+    bugbox_croped_saved: str | None
 
 
 class UploadFileModel(UploadFileModelBase, table=True):
@@ -49,6 +51,8 @@ def create_db_and_tables():
 class UploadFileUpdate(BaseModel):
     approved: Optional[bool] = None
     upload_dir_name: str
+    bugbox_sample_id: Optional[int] = None
+    bugbox_croped_saved: Optional[str] = None
 
 
 class UploadFileModelPublic(UploadFileModelBase):
