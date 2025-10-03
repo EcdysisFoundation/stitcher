@@ -15,7 +15,19 @@ To see the console logs
 
 ## database
 
-The SQLite database file (data/database.db) is in a Docker volume. A blank database will be created when starting a volume, but this will be incompatible with any existing alembic files in the repo. Replacing the data/database.db file with a copy of the production database will make it compatible with the migration files.
+The SQLite database file (data/database.db) is in a Docker volume. A blank database will be created when starting a volume, but this will be incompatible with any existing alembic files in the repo. On a development machine, or new deployment, the data/database.db file with a copy of the production database will make the database compatible with the migration files to use the repo as is.
+
+There are no automated database backup configured at this time. It is intended that data gets worked through the Stitcher system, then gets entered into the Bugbox database where there is a backup strategy. Do a manual backup before any significant changes that present risk to the database.
+
+To get a database backup. With the docker container running on production system, get the CONTAINER_ID with `docker ps`.
+
+`docker cp CONTAINER_ID:/data/database.db database.db` to copy the db to the current directory.
+
+On local machine, copy it down `scp ecdysis@ecdysis01.local:/srv/stitcher/database.db database.db`
+
+With the container running locally, get the id with `docker ps`
+
+Copy the db to it with docker `docker cp database.db CONTAINER_ID:/data/database.db` and restart the container.
 
 ### migrations
 
