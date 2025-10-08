@@ -236,7 +236,7 @@ def datatables_uploads(start: int, length: int, search: str):
 
 
 @validate_call
-def update_annotations_post(guid: uuid.UUID, annotations: List[dict], annotator: int, updated_at: str):
+def update_annotations_post(guid: uuid.UUID, annotations: List[dict] | None, annotator: int, updated_at: str):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
@@ -245,9 +245,12 @@ def update_annotations_post(guid: uuid.UUID, annotations: List[dict], annotator:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
+        if rec.bugbox_croped_saved:
+            return False
         rec.annotations = jsonable_encoder(annotations)
         rec.annotator = annotator
         rec.annotations_updated_at = updated_at
         session.add(rec)
         session.commit()
         session.refresh(rec)
+        return True
