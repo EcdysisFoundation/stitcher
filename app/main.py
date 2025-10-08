@@ -218,6 +218,7 @@ def update_record(guid: uuid.UUID, upload_file: UploadFileUpdate):
 async def upload_annotations(file: UploadFile):
     """
     Upload a .json file of annotations from label-studio json-min export.
+    If the record is already sent to BugBox with bugbox_croped_saved set it will be skipped.
     """
     allowed_types = ['application/json']
     if file.content_type not in allowed_types:
@@ -228,10 +229,13 @@ async def upload_annotations(file: UploadFile):
     messages = {
         'guids_not_found': [],
         'errors': [],
-        'updated_annotations': 0}
+        'updated_annotations': 0,
+        'skipped_due_to_requirements': 0}
     temp_path = os.path.join(constants.MEDIA_PATH, file.filename)
+    # save the file
     with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    # now open it
     with open(temp_path, 'r') as file:
         data = json.load(file)
         for d in data:
@@ -242,12 +246,15 @@ async def upload_annotations(file: UploadFile):
                 annotations = d['label']
                 annotator = d['annotator']
                 updated_at = d['updated_at']
-            except Exception:
-                messages['errors'].append('missing keys in record')
+            except Exception as e:
+                messages['errors'].append(f'missing keys in record: {e}')
             if guid:
                 try:
-                    update_annotations_post(guid, annotations, annotator, updated_at)
-                    messages['updated_annotations'] += 1
+                    v = update_annotations_post(guid, annotations, annotator, updated_at)
+                    if v:
+                        messages['updated_annotations'] += 1
+                    else:
+                        messages['skipped_due_to_requirements'] += 1
                 except HTTPException:
                     messages['guids_not_found'].append(guid)
     return messages
