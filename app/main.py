@@ -243,7 +243,7 @@ async def upload_annotations(file: UploadFile):
             annotations = None
             try:
                 guid = d['meta']['guid']
-                annotations = d['label']
+                annotations = d['label'] if 'label' in d.keys() else None
                 annotator = d['annotator']
                 updated_at = d['updated_at']
             except Exception as e:
