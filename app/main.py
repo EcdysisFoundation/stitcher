@@ -34,6 +34,7 @@ from .models import (
     update_annotations_post,
     update_sent_label_studio,
     update_predictions_post,
+    update_predictions_coco_post,
     update_upload_file_update)
 from .utils import get_extract_path
 
@@ -186,10 +187,20 @@ async def update_stitching(
 @app.post("/update-predictions/")
 async def update_predictions(guid: uuid.UUID, predictions: List[dict]):
     """
-    After performing inference on the panorama, enter the predictions here.
+    After performing inference on the panorama, enter the object detection predictions here.
+    Label Studio conversion is assumed to be done already.
     """
     update_predictions_post(guid, predictions)
     return {'message': f'Updated predictions for: {guid}'}
+
+
+@app.post("/update-predictions-coco/")
+async def update_predictions_coco(guid: uuid.UUID, predictions_coco: List[dict]):
+    """
+    After performing inference on the panorama, enter the coco predictions here.
+    """
+    update_predictions_coco_post(guid, predictions_coco)
+    return {'message': f'Updated predictions_cocop for: {guid}'}
 
 
 @app.post("/sent_label_studio/")
