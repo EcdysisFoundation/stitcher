@@ -28,7 +28,10 @@ class UploadFileModelBase(SQLModel):
     approved: bool | None = Field(default=None)
     predictions: List[dict] | None = Field(sa_column=Column(JSON))
     predictions_timestamp: datetime.datetime | None
+    predictions_coco: List[dict] | None = Field(sa_column=Column(JSON))
+    predictions_timestamp_coco: datetime.datetime | None
     sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
+    label_studio_project: str | None = Field(default=None)
     stitching_exception: str | None = Field(default=None)
     stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
@@ -36,6 +39,9 @@ class UploadFileModelBase(SQLModel):
     annotations: List[dict] | None = Field(sa_column=Column(JSON))
     annotator: int | None
     annotations_updated_at: str | None
+    annotations_segment: List[dict] | None = Field(sa_column=Column(JSON))
+    annotator_segment: int | None
+    annotations_updated_at_segment: str | None
     bugbox_sample_id: int | None
     bugbox_croped_saved: str | None
 
