@@ -191,6 +191,23 @@ def update_predictions_post(guid: uuid.UUID, predictions: List[dict]):
 
 
 @validate_call
+def update_predictions_coco_post(guid: uuid.UUID, predictions_coco: List[dict]):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        results = session.exec(statement)
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
+        rec.predictions_coco = jsonable_encoder(predictions_coco)
+        rec.predictions_timestamp_coco = datetime.datetime.now(datetime.timezone.utc)
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+
+
+@validate_call
 def update_sent_label_studio(guid: uuid.UUID):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
