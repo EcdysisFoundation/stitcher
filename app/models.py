@@ -24,6 +24,8 @@ class UploadFileModelBase(SQLModel):
     extract_path: str | None = Field(default=None)
     upload_dir_name: str = Field(index=True)
     panorama_path: str | None = Field(default=None)
+    panorama_width: int | None
+    panorama_height: int | None
     panorama_confidence: float | None = Field(default=None)
     approved: bool | None = Field(default=None)
     predictions: List[dict] | None = Field(sa_column=Column(JSON))
@@ -200,8 +202,11 @@ def update_predictions_coco_post(guid: uuid.UUID, predictions_coco: List[dict]):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
-        rec.predictions_coco = jsonable_encoder(predictions_coco)
+        prediction_result = jsonable_encoder(predictions_coco)[0]
+        rec.predictions_coco = prediction_result['predictions']
         rec.predictions_timestamp_coco = datetime.datetime.now(datetime.timezone.utc)
+        rec.panorama_width = prediction_result['original_width']
+        rec.panorama_height = prediction_result['original_height']
         session.add(rec)
         session.commit()
         session.refresh(rec)
