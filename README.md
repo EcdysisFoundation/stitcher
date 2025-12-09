@@ -50,3 +50,10 @@ Review the generated migraitons file, then run this command
     alembic upgrade head
 
 To undo a recent migration, run `alembic downgrade REVISION_ID` and then delete the migration file.
+
+## User Interface
+
+The UI is in bugbox, intended to work on local Ecdysis01 server.
+See https://github.com/EcdysisFoundation/bugbox3/tree/main/bugbox3/core for files `stitcher_x.py` and
+https://github.com/EcdysisFoundation/bugbox3/tree/main/bugbox3/templates/core for files `stitcher_x.html` and
+https://github.com/EcdysisFoundation/bugbox3/tree/main/bugbox3/static/js for `stitcher.js` and `stitcher_form.js`
