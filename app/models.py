@@ -282,3 +282,25 @@ def update_annotations_post(guid: uuid.UUID, annotations: List[dict] | None, ann
         session.commit()
         session.refresh(rec)
         return True
+
+
+@validate_call
+def update_annotations_segment_post(
+        guid: uuid.UUID, annotations_segment: List[dict] | None, annotator_segment: int, updated_at: str):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        results = session.exec(statement)
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
+        if rec.bugbox_croped_saved:
+            return False
+        rec.annotations_segment = jsonable_encoder(annotations_segment)
+        rec.annotator_segment = annotator_segment
+        rec.annotations_updated_at_segment = updated_at
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+        return True
