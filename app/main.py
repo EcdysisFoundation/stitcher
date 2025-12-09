@@ -250,11 +250,11 @@ async def upload_annotations(file: UploadFile):
     # now open it
     with open(temp_path, 'r') as file:
         data = json.load(file)
-        first_label = data[0]['label']
+        first_label_keys = data[0]['label'][0].keys()
         expected_keys = ["x", "y", "width", "height"]
-        if expected_keys not in first_label.keys():
+        if any(item not in first_label_keys for item in expected_keys):
             messages['errors'].append(
-                f'Expected keys {expected_keys} not in first label keys {first_label.keys()}, did not save.')
+                f'Expected keys {expected_keys} not in first label keys {first_label_keys}, did not save.')
         for d in data:
             guid = None
             annotations = None
@@ -301,11 +301,11 @@ async def upload_annotations_segment(file: UploadFile):
     # now open it
     with open(temp_path, 'r') as file:
         data = json.load(file)
-        first_label = data[0]['label']
+        first_label_keys = data[0]['label'][0].keys()
         expected_keys = ["closed", "points", "polygonlabels", "original_width", "original_height"]
-        if expected_keys not in first_label.keys():
+        if any(item not in first_label_keys for item in expected_keys):
             messages['errors'].append(
-                f'Expected keys {expected_keys} not in first label keys {first_label.keys()}, did not save.')
+                f'Expected keys {expected_keys} not in first label keys {first_label_keys}, did not save.')
             return messages
         for d in data:
             guid = None
