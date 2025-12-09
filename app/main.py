@@ -32,6 +32,7 @@ from .models import (
     read_upload_file,
     create_db_and_tables,
     update_annotations_post,
+    update_annotations_segment_post,
     update_sent_label_studio,
     update_predictions_post,
     update_predictions_coco_post,
@@ -249,6 +250,11 @@ async def upload_annotations(file: UploadFile):
     # now open it
     with open(temp_path, 'r') as file:
         data = json.load(file)
+        first_label = data[0]['label']
+        expected_keys = ["x", "y", "width", "height"]
+        if expected_keys not in first_label.keys():
+            messages['errors'].append(
+                f'Expected keys {expected_keys} not in first label keys {first_label.keys()}, did not save.')
         for d in data:
             guid = None
             annotations = None
@@ -262,6 +268,58 @@ async def upload_annotations(file: UploadFile):
             if guid:
                 try:
                     v = update_annotations_post(guid, annotations, annotator, updated_at)
+                    if v:
+                        messages['updated_annotations'] += 1
+                    else:
+                        messages['skipped_due_to_requirements'] += 1
+                except HTTPException:
+                    messages['guids_not_found'].append(guid)
+    return messages
+
+
+@app.post("/upload-annotations-segment/")
+async def upload_annotations_segment(file: UploadFile):
+    """
+    Upload a .json file of segmentation annotations from label-studio json-min export.
+    If the record is already sent to BugBox with bugbox_croped_saved set it will be skipped.
+    """
+    allowed_types = ['application/json']
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Only {', '.join(allowed_types)} are allowed."
+        )
+    messages = {
+        'guids_not_found': [],
+        'errors': [],
+        'updated_annotations': 0,
+        'skipped_due_to_requirements': 0}
+    temp_path = os.path.join(constants.MEDIA_PATH, file.filename)
+    # save the file
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    # now open it
+    with open(temp_path, 'r') as file:
+        data = json.load(file)
+        first_label = data[0]['label']
+        expected_keys = ["closed", "points", "polygonlabels", "original_width", "original_height"]
+        if expected_keys not in first_label.keys():
+            messages['errors'].append(
+                f'Expected keys {expected_keys} not in first label keys {first_label.keys()}, did not save.')
+            return messages
+        for d in data:
+            guid = None
+            annotations = None
+            try:
+                guid = d['meta']['guid']
+                annotations = d['label'] if 'label' in d.keys() else None
+                annotator = d['annotator']
+                updated_at = d['updated_at']
+            except Exception as e:
+                messages['errors'].append(f'missing keys in record: {e}')
+            if guid:
+                try:
+                    v = update_annotations_segment_post(guid, annotations, annotator, updated_at)
                     if v:
                         messages['updated_annotations'] += 1
                     else:
