@@ -132,6 +132,11 @@ def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confi
         rec.annotator = None
         rec.annotations_updated_at = None
         rec.sent_label_studio = None
+        rec.label_studio_project = None
+        rec.annotations_segment = None
+        rec.annotator_segment = None
+        rec.annotator_segment = None
+        rec.annotations_updated_at_segment = None
         session.add(rec)
         session.commit()
         session.refresh(rec)
@@ -213,7 +218,7 @@ def update_predictions_coco_post(guid: uuid.UUID, predictions_coco: List[dict]):
 
 
 @validate_call
-def update_sent_label_studio(guid: uuid.UUID):
+def update_sent_label_studio(guid: uuid.UUID, project: str):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
@@ -223,6 +228,7 @@ def update_sent_label_studio(guid: uuid.UUID):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
         rec.sent_label_studio = rec.panorama_path
+        rec.label_studio_project = project
         session.add(rec)
         session.commit()
         session.refresh(rec)
