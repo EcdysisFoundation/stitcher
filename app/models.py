@@ -319,7 +319,7 @@ def get_stats():
         stats = {}
         ls_statement = select(
             UploadFileModel.label_studio_project,
-            func.count(func.distinct(UploadFileModel.label_studio_project)).label(
+            func.count(UploadFileModel.label_studio_project).label(
                 "distinct_ls_project_count")).where(
                 UploadFileModel.label_studio_project is not None).group_by(UploadFileModel.label_studio_project)
         ls_results = session.exec(ls_statement).all()
