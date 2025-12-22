@@ -249,7 +249,7 @@ def delete_by_guid(guid: uuid.UUID):
 
 
 @validate_call
-def datatables_uploads(start: int, length: int, search: str):
+def datatables_uploads(start: int, length: int, search: str, lsproject: str | None):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel)
         count_statement = select(func.count()).select_from(UploadFileModel)
@@ -257,6 +257,8 @@ def datatables_uploads(start: int, length: int, search: str):
         if search:
             statement = statement.where(
                 UploadFileModel.upload_dir_name.like(f"%{search}%") | UploadFileModel.guid.like(f"%{search}%"))
+        if lsproject:
+            statement = statement.where(UploadFileModel.label_studio_project.like(f"%{lsproject}%"))
         statement = statement.order_by(UploadFileModel.id.desc())
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
@@ -310,3 +312,19 @@ def update_annotations_segment_post(
         session.commit()
         session.refresh(rec)
         return True
+
+
+def get_stats():
+    with Session(ENGINE) as session:
+        stats = {}
+        ls_statement = select(
+            UploadFileModel.label_studio_project,
+            func.count(func.distinct(UploadFileModel.label_studio_project)).label(
+                "distinct_ls_project_count")).where(
+                UploadFileModel.label_studio_project is not None).group_by(UploadFileModel.label_studio_project)
+        ls_results = session.exec(ls_statement).all()
+        ls_results = [tuple(v) for v in ls_results if v[0]]
+        stats.update({
+            "label_studio_projects": ls_results if ls_results else None
+        })
+        return stats
