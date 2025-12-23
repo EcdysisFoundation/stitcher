@@ -166,7 +166,6 @@ def index_datatables(request: Request, start: int, length: int = 10):
         'draw': request.query_params.get('draw')
     }
     results = datatables_uploads(start, length, params)
-    results.update({'draw': params['draw']})
     return results
 
 

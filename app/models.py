@@ -10,6 +10,7 @@ from sqlmodel import (
 )
 from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 
 
 SQLITE_FILE_NAME = '/data/database.db'
@@ -64,7 +65,30 @@ class UploadFileUpdate(BaseModel):
 
 
 class UploadFileModelPublic(UploadFileModelBase):
+    # omit large data fields, example predictions, annotations
     id: int
+    guid: str | None
+    extract_path: str | None
+    upload_dir_name: str
+    panorama_path: str | None
+    panorama_width: int | None
+    panorama_height: int | None
+    panorama_confidence: float | None
+    approved: bool | None
+    predictions_timestamp: datetime.datetime | None
+    predictions_timestamp_coco: datetime.datetime | None
+    sent_label_studio: str | None
+    label_studio_project: str | None
+    stitching_exception: str | None
+    stitching_exception_at: datetime.datetime | None
+    panorma_timestamp: datetime.datetime | None
+    created_at: datetime.datetime | None
+    annotator: int | None
+    annotations_updated_at: str | None
+    annotator_segment: int | None
+    annotations_updated_at_segment: str | None
+    bugbox_sample_id: int | None
+    bugbox_croped_saved: str | None
 
 
 @validate_call
@@ -279,7 +303,8 @@ def datatables_uploads(start: int, length: int, params):
         return {
             "recordsTotal": records_total,
             "recordsFiltered": records_filtered,
-            "data": results
+            "data": results,
+            "draw": params['draw']
         }
 
 
