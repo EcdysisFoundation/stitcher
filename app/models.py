@@ -4,9 +4,9 @@ from typing import List, Optional
 from pydantic import BaseModel, validate_call
 from uuid import UUID
 from pathlib import Path
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from sqlmodel import (
-    Field, Session, SQLModel, create_engine, select, JSON, Column, col, func
+    Field, Session, SQLModel, create_engine, select, JSON, Column, col, func, or_
 )
 from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
@@ -249,16 +249,28 @@ def delete_by_guid(guid: uuid.UUID):
 
 
 @validate_call
-def datatables_uploads(start: int, length: int, search: str, lsproject: str | None):
+def datatables_uploads(start: int, length: int, params):
     with Session(ENGINE) as session:
+        approved_selects = []
+        unreviewed = True if params['unreviewed'] == 'true' else False
+        approved_selects.append(None) if params['unreviewed'] == 'true' else None
+        approved_selects.append(True) if params['approved'] == 'true' else None
+        approved_selects.append(False) if params['disapproved'] == 'true' else None
         statement = select(UploadFileModel)
         count_statement = select(func.count()).select_from(UploadFileModel)
         records_total = session.exec(count_statement).one()
-        if search:
+        if params['search']:
             statement = statement.where(
-                UploadFileModel.upload_dir_name.like(f"%{search}%") | UploadFileModel.guid.like(f"%{search}%"))
-        if lsproject:
-            statement = statement.where(UploadFileModel.label_studio_project.like(f"%{lsproject}%"))
+                UploadFileModel.upload_dir_name.like(f"%{params['search']}%") | UploadFileModel.guid.like(f"%{params['search']}%"))
+        if params['lsproject']:
+            statement = statement.where(UploadFileModel.label_studio_project.like(f"%{params['lsproject']}%"))
+        if len(approved_selects):
+            if unreviewed:
+                statement = statement.where(or_(
+                    UploadFileModel.approved.in_(approved_selects),
+                    UploadFileModel.approved == None))
+            else:
+                statement = statement.where(UploadFileModel.approved.in_(approved_selects))
         statement = statement.order_by(UploadFileModel.id.desc())
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
