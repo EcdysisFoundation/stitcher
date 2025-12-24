@@ -157,14 +157,7 @@ async def list_upload_file(guid: uuid.UUID):
 
 @app.get("/uploads")
 def index_datatables(request: Request, start: int, length: int = 10):
-    params = {
-        'search': request.query_params.get("search[value]"),
-        'lsproject': request.query_params.get('lsproject'),
-        'unreviewed': request.query_params.get('unreviewed'),
-        'approved': request.query_params.get('approved'),
-        'disapproved': request.query_params.get('disapproved'),
-        'draw': request.query_params.get('draw')
-    }
+    params = {v: request.query_params.get(v) for v in constants.INDEX_DATATABLES_PARAMS}
     results = datatables_uploads(start, length, params)
     return results
 

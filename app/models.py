@@ -4,13 +4,14 @@ from typing import List, Optional
 from pydantic import BaseModel, validate_call
 from uuid import UUID
 from pathlib import Path
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, status
 from sqlmodel import (
     Field, Session, SQLModel, create_engine, select, JSON, Column, col, func, or_
 )
 from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+
+from . import constants
 
 
 SQLITE_FILE_NAME = '/data/database.db'
@@ -276,18 +277,18 @@ def delete_by_guid(guid: uuid.UUID):
 def datatables_uploads(start: int, length: int, params):
     with Session(ENGINE) as session:
         approved_selects = []
-        unreviewed = True if params['unreviewed'] == 'true' else False
-        approved_selects.append(None) if params['unreviewed'] == 'true' else None
-        approved_selects.append(True) if params['approved'] == 'true' else None
-        approved_selects.append(False) if params['disapproved'] == 'true' else None
+        unreviewed = True if params[constants.INDEX_DATATABLES_UNREVIEWED] == 'true' else False
+        approved_selects.append(None) if params[constants.INDEX_DATATABLES_UNREVIEWED] == 'true' else None
+        approved_selects.append(True) if params[constants.INDEX_DATATABLES_APPROVED] == 'true' else None
+        approved_selects.append(False) if params[constants.INDEX_DATATABLES_DISAPPROVED] == 'true' else None
         statement = select(UploadFileModel)
         count_statement = select(func.count()).select_from(UploadFileModel)
         records_total = session.exec(count_statement).one()
-        if params['search']:
+        if params[constants.INDEX_DATATABLES_SEARCH]:
             statement = statement.where(
-                UploadFileModel.upload_dir_name.like(f"%{params['search']}%") | UploadFileModel.guid.like(f"%{params['search']}%"))
-        if params['lsproject']:
-            statement = statement.where(UploadFileModel.label_studio_project.like(f"%{params['lsproject']}%"))
+                UploadFileModel.upload_dir_name.like(f"%{params[constants.INDEX_DATATABLES_SEARCH]}%") | UploadFileModel.guid.like(f"%{params[constants.INDEX_DATATABLES_SEARCH]}%"))
+        if params[constants.INDEX_DATATABLES_LSPROJECT]:
+            statement = statement.where(UploadFileModel.label_studio_project.like(f"%{params[constants.INDEX_DATATABLES_LSPROJECT]}%"))
         if len(approved_selects):
             if unreviewed:
                 statement = statement.where(or_(
@@ -295,6 +296,15 @@ def datatables_uploads(start: int, length: int, params):
                     UploadFileModel.approved == None))
             else:
                 statement = statement.where(UploadFileModel.approved.in_(approved_selects))
+        if params[constants.INDEX_DATATABLES_PREDICTIONS] == 'true':
+            statement = statement.where(UploadFileModel.predictions_timestamp_coco.is_not(None))
+        if params[constants.INDEX_DATATABLES_ANNOTATIONS] == 'true':
+            statement = statement.where(UploadFileModel.annotations_updated_at_segment.is_not(None))
+        if params[constants.INDEX_DATATABLES_COMPLETED] == 'true':
+            statement = statement.where(
+                UploadFileModel.bugbox_croped_saved.is_not(None)).where(
+                UploadFileModel.bugbox_croped_saved != ''
+                )
         statement = statement.order_by(UploadFileModel.id.desc())
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
