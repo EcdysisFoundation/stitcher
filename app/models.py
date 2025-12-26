@@ -6,10 +6,12 @@ from uuid import UUID
 from pathlib import Path
 from fastapi import HTTPException, status
 from sqlmodel import (
-    Field, Session, SQLModel, create_engine, select, JSON, Column, col, func
+    Field, Session, SQLModel, create_engine, select, JSON, Column, col, func, or_
 )
 from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
+
+from . import constants
 
 
 SQLITE_FILE_NAME = '/data/database.db'
@@ -45,6 +47,7 @@ class UploadFileModelBase(SQLModel):
     annotator_segment: int | None
     annotations_updated_at_segment: str | None
     bugbox_sample_id: int | None
+    nota_sample: bool | None  # indicates bugbox_sample_id should remain None
     bugbox_croped_saved: str | None
 
 
@@ -60,11 +63,35 @@ class UploadFileUpdate(BaseModel):
     approved: Optional[bool] = None
     upload_dir_name: str
     bugbox_sample_id: Optional[int] = None
+    nota_sample: Optional[bool] = None
     bugbox_croped_saved: Optional[str] = None
 
 
 class UploadFileModelPublic(UploadFileModelBase):
+    # omit large data fields, example predictions, annotations
     id: int
+    guid: str | None
+    extract_path: str | None
+    upload_dir_name: str
+    panorama_path: str | None
+    panorama_width: int | None
+    panorama_height: int | None
+    panorama_confidence: float | None
+    approved: bool | None
+    predictions_timestamp: datetime.datetime | None
+    predictions_timestamp_coco: datetime.datetime | None
+    sent_label_studio: str | None
+    label_studio_project: str | None
+    stitching_exception: str | None
+    stitching_exception_at: datetime.datetime | None
+    panorma_timestamp: datetime.datetime | None
+    created_at: datetime.datetime | None
+    annotator: int | None
+    annotations_updated_at: str | None
+    annotator_segment: int | None
+    annotations_updated_at_segment: str | None
+    bugbox_sample_id: int | None
+    bugbox_croped_saved: str | None
 
 
 @validate_call
@@ -76,6 +103,8 @@ def update_upload_file_update(guid: UUID, upload_file: UploadFileUpdate):
         except NoResultFound:
             raise HTTPException(status_code=404, detail="Item not found")
         rec_data = upload_file.model_dump(exclude_unset=True)
+        if rec_data['bugbox_sample_id'] and rec_data['nota_sample']:
+            raise HTTPException(status_code=400, detail="Both Sample ID and Not a Sample cannot be True")
         rec.sqlmodel_update(rec_data)
         session.add(rec)
         session.commit()
@@ -249,14 +278,45 @@ def delete_by_guid(guid: uuid.UUID):
 
 
 @validate_call
-def datatables_uploads(start: int, length: int, search: str):
+def datatables_uploads(start: int, length: int, params):
     with Session(ENGINE) as session:
+        approved_selects = []
+        unreviewed = True if params[constants.INDEX_DATATABLES_UNREVIEWED] == 'true' else False
+        approved_selects.append(None) if params[constants.INDEX_DATATABLES_UNREVIEWED] == 'true' else None
+        approved_selects.append(True) if params[constants.INDEX_DATATABLES_APPROVED] == 'true' else None
+        approved_selects.append(False) if params[constants.INDEX_DATATABLES_DISAPPROVED] == 'true' else None
         statement = select(UploadFileModel)
         count_statement = select(func.count()).select_from(UploadFileModel)
         records_total = session.exec(count_statement).one()
-        if search:
+        if params[constants.INDEX_DATATABLES_SEARCH]:
             statement = statement.where(
-                UploadFileModel.upload_dir_name.like(f"%{search}%") | UploadFileModel.guid.like(f"%{search}%"))
+                UploadFileModel.upload_dir_name.like(f"%{params[constants.INDEX_DATATABLES_SEARCH]}%") | UploadFileModel.guid.like(f"%{params[constants.INDEX_DATATABLES_SEARCH]}%"))
+        if params[constants.INDEX_DATATABLES_LSPROJECT]:
+            statement = statement.where(UploadFileModel.label_studio_project.like(f"%{params[constants.INDEX_DATATABLES_LSPROJECT]}%"))
+        if len(approved_selects):
+            if unreviewed:
+                statement = statement.where(or_(
+                    UploadFileModel.approved.in_(approved_selects),
+                    UploadFileModel.approved == None))
+            else:
+                statement = statement.where(UploadFileModel.approved.in_(approved_selects))
+        if params[constants.INDEX_DATATABLES_PREDICTIONS] == 'true':
+            statement = statement.where(UploadFileModel.predictions_timestamp_coco.is_not(None))
+        if params[constants.INDEX_DATATABLES_ANNOTATIONS] == 'true':
+            statement = statement.where(UploadFileModel.annotations_updated_at_segment.is_not(None))
+        if params[constants.INDEX_DATATABLES_COMPLETED] == 'true':
+            statement = statement.where(
+                UploadFileModel.bugbox_croped_saved.is_not(None)).where(
+                UploadFileModel.bugbox_croped_saved != ''
+                )
+        if params[constants.INDEX_DATATABLES_SAMPLE_LINKED] == 'true':
+            statement = statement.where(
+                UploadFileModel.bugbox_sample_id.is_not(None)
+            )
+        if params[constants.INDEX_DATATABLES_NOTA_SAMPLE] == 'true':
+            statement = statement.where(
+                UploadFileModel.nota_sample == True
+            )
         statement = statement.order_by(UploadFileModel.id.desc())
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
@@ -265,7 +325,8 @@ def datatables_uploads(start: int, length: int, search: str):
         return {
             "recordsTotal": records_total,
             "recordsFiltered": records_filtered,
-            "data": results
+            "data": results,
+            "draw": params['draw']
         }
 
 
@@ -310,3 +371,19 @@ def update_annotations_segment_post(
         session.commit()
         session.refresh(rec)
         return True
+
+
+def get_stats():
+    with Session(ENGINE) as session:
+        stats = {}
+        ls_statement = select(
+            UploadFileModel.label_studio_project,
+            func.count(UploadFileModel.label_studio_project).label(
+                "distinct_ls_project_count")).where(
+                UploadFileModel.label_studio_project is not None).group_by(UploadFileModel.label_studio_project)
+        ls_results = session.exec(ls_statement).all()
+        ls_results = [tuple(v) for v in ls_results if v[0]]
+        stats.update({
+            "label_studio_projects": ls_results if ls_results else None
+        })
+        return stats

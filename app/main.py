@@ -28,6 +28,7 @@ from .models import (
     create_upload_file,
     datatables_uploads,
     delete_by_guid,
+    get_stats,
     read_upload_files,
     read_upload_file,
     create_db_and_tables,
@@ -156,10 +157,8 @@ async def list_upload_file(guid: uuid.UUID):
 
 @app.get("/uploads")
 def index_datatables(request: Request, start: int, length: int = 10):
-    params = request.query_params.get
-    search = params("search[value]")
-    results = datatables_uploads(start, length, search)
-    results.update({'draw': params('draw')})
+    params = {v: request.query_params.get(v) for v in constants.INDEX_DATATABLES_PARAMS}
+    results = datatables_uploads(start, length, params)
     return results
 
 
@@ -327,3 +326,11 @@ async def upload_annotations_segment(file: UploadFile):
                 except HTTPException:
                     messages['guids_not_found'].append(guid)
     return messages
+
+
+@app.get("/stats")
+def read_category_counts():
+    """
+    Get summary stats.
+    """
+    return get_stats()
