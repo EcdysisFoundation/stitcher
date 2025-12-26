@@ -47,6 +47,7 @@ class UploadFileModelBase(SQLModel):
     annotator_segment: int | None
     annotations_updated_at_segment: str | None
     bugbox_sample_id: int | None
+    nota_sample: bool | None  # indicates bugbox_sample_id should remain None
     bugbox_croped_saved: str | None
 
 
@@ -62,6 +63,7 @@ class UploadFileUpdate(BaseModel):
     approved: Optional[bool] = None
     upload_dir_name: str
     bugbox_sample_id: Optional[int] = None
+    nota_sample: Optional[bool] = None
     bugbox_croped_saved: Optional[str] = None
 
 
@@ -101,6 +103,8 @@ def update_upload_file_update(guid: UUID, upload_file: UploadFileUpdate):
         except NoResultFound:
             raise HTTPException(status_code=404, detail="Item not found")
         rec_data = upload_file.model_dump(exclude_unset=True)
+        if rec_data['bugbox_sample_id'] and rec_data['nota_sample']:
+            raise HTTPException(status_code=400, detail="Both Sample ID and Not a Sample cannot be True")
         rec.sqlmodel_update(rec_data)
         session.add(rec)
         session.commit()
@@ -305,6 +309,14 @@ def datatables_uploads(start: int, length: int, params):
                 UploadFileModel.bugbox_croped_saved.is_not(None)).where(
                 UploadFileModel.bugbox_croped_saved != ''
                 )
+        if params[constants.INDEX_DATATABLES_SAMPLE_LINKED] == 'true':
+            statement = statement.where(
+                UploadFileModel.bugbox_sample_id.is_not(None)
+            )
+        if params[constants.INDEX_DATATABLES_NOTA_SAMPLE] == 'true':
+            statement = statement.where(
+                UploadFileModel.nota_sample == True
+            )
         statement = statement.order_by(UploadFileModel.id.desc())
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
