@@ -10,7 +10,7 @@ DEFAULT_CONFIDENCE_LEVEL = 0.6
 
 LABEL_STUDIO_FILTER_DESC = 'When True, filters where panorama is approved'
 
-INDEX_DATATABLES_SEARCH = 'search'
+INDEX_DATATABLES_SEARCH = 'search[value]'
 INDEX_DATATABLES_LSPROJECT = 'lsproject'
 INDEX_DATATABLES_SAMPLE_LINKED = 'sample_linked'
 INDEX_DATATABLES_NOTA_SAMPLE = 'nota_sample'
