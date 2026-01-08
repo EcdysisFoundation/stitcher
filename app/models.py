@@ -309,6 +309,11 @@ def datatables_uploads(start: int, length: int, params):
                 UploadFileModel.bugbox_croped_saved.is_not(None)).where(
                 UploadFileModel.bugbox_croped_saved != ''
                 )
+        if params[constants.INDEX_DATATABLES_NOT_COMPLETED] == 'true':
+            statement = statement.where(or_(
+                UploadFileModel.bugbox_croped_saved == '',
+                UploadFileModel.bugbox_croped_saved == None
+            ))
         if params[constants.INDEX_DATATABLES_NEEDS_LINKED] == 'true':
             statement = statement.where(
                 UploadFileModel.bugbox_sample_id == None).where(
