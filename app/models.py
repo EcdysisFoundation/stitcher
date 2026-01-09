@@ -313,7 +313,7 @@ def datatables_uploads(start: int, length: int, params):
             statement = statement.where(or_(
                 UploadFileModel.bugbox_croped_saved == '',
                 UploadFileModel.bugbox_croped_saved == None
-            ))
+            )).where(UploadFileModel.nota_sample.is_not(True))
         if params[constants.INDEX_DATATABLES_NEEDS_LINKED] == 'true':
             statement = statement.where(
                 UploadFileModel.bugbox_sample_id == None).where(
