@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from sqlmodel import (
     Field, Session, SQLModel, create_engine, select, JSON, Column, col, func, or_
 )
+from sqlalchemy.orm import load_only
 from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
 
@@ -330,6 +331,31 @@ def datatables_uploads(start: int, length: int, params):
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
         statement = statement.offset(start).limit(length)
+        statement = statement.options(load_only(
+            UploadFileModel.guid,
+            UploadFileModel.extract_path,
+            UploadFileModel.upload_dir_name,
+            UploadFileModel.panorama_path,
+            UploadFileModel.panorama_width,
+            UploadFileModel.panorama_height,
+            UploadFileModel.panorama_confidence,
+            UploadFileModel.approved,
+            UploadFileModel.predictions_timestamp,
+            UploadFileModel.predictions_timestamp_coco,
+            UploadFileModel.sent_label_studio,
+            UploadFileModel.label_studio_project,
+            UploadFileModel.stitching_exception,
+            UploadFileModel.stitching_exception_at,
+            UploadFileModel.panorma_timestamp,
+            UploadFileModel.created_at,
+            UploadFileModel.annotator,
+            UploadFileModel.annotations_updated_at,
+            UploadFileModel.annotator_segment,
+            UploadFileModel.annotations_updated_at_segment,
+            UploadFileModel.bugbox_sample_id,
+            UploadFileModel.nota_sample,
+            UploadFileModel.bugbox_croped_saved
+        ))
         results = session.exec(statement).all()
         return {
             "recordsTotal": records_total,
