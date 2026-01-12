@@ -1,4 +1,5 @@
 import os
+import cv2
 from pathlib import Path
 from pydantic import validate_call
 from uuid import UUID
@@ -42,3 +43,27 @@ def get_pano_path(extract_dir):
                            str(filenumber)
 
     return os.path.join(extract_dir, new_filename + constants.PANO_EXTENSION)
+
+
+def load_resize_and_save_thumbnail(path, new_width, suffix="_thumbnail"):
+    # Load image
+    img = cv2.imread(path)
+    if img is None:
+        raise FileNotFoundError(f"Could not read image: {path}")
+
+    # Resize, keeping aspect ratio
+    h, w = img.shape[:2]
+    scale = new_width / float(w)
+    new_height = int(h * scale)
+    resized = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+    # Build new file path with suffix before extension
+    p = Path(path)
+    thumb_path = p.with_name(p.stem + suffix + p.suffix)
+
+    # Save thumbnail
+    success = cv2.imwrite(thumb_path, resized)
+    if not success:
+        raise IOError(f"Could not write image: {thumb_path}")
+
+    return thumb_path

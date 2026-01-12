@@ -29,6 +29,7 @@ class UploadFileModelBase(SQLModel):
     panorama_path: str | None = Field(default=None)
     panorama_width: int | None
     panorama_height: int | None
+    panorama_thumbnail_path: str | None = Field(index=True)
     panorama_confidence: float | None = Field(default=None)
     approved: bool | None = Field(default=None)
     predictions: List[dict] | None = Field(sa_column=Column(JSON))
@@ -142,7 +143,7 @@ def get_panorama_path(extract_path: Path):
 
 
 @validate_call
-def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confidence: float):
+def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confidence: float, panorama_thumbnail_path: Path | None):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
@@ -154,6 +155,7 @@ def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confi
         rec.panorama_path = str(panorama_path)
         rec.panorama_confidence = panorama_confidence
         rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        rec.panorama_thumbnail_path = str(panorama_thumbnail_path)
         # clear fields that are no longer valid
         rec.predictions = []
         rec.approved = None
@@ -339,6 +341,7 @@ def datatables_uploads(start: int, length: int, params):
             UploadFileModel.panorama_width,
             UploadFileModel.panorama_height,
             UploadFileModel.panorama_confidence,
+            UploadFileModel.panorama_thumbnail_path,
             UploadFileModel.approved,
             UploadFileModel.predictions_timestamp,
             UploadFileModel.predictions_timestamp_coco,
