@@ -8,7 +8,7 @@ from pydantic import validate_call
 
 from .models import update_panorama_path, record_stitching_exception
 from .stitching import AffineStitcher
-from .utils import get_image_strs, get_pano_path
+from .utils import get_image_strs, get_pano_path, load_resize_and_save_thumbnail
 
 
 logger = logging.getLogger(__name__)
@@ -37,11 +37,17 @@ async def background_stitch_imgs(extract_dir: Path, conf: float):
         if len(img_paths) > 1:
             cv.ocl.setUseOpenCL(False)
             stitcher = AffineStitcher(**settings)
+
             try:
                 panorama = stitcher.stitch(img_paths)
                 logger.info(f'writing panorma to {panorama_path}')
                 cv.imwrite(panorama_path, panorama)
-                update_panorama_path(extract_dir, panorama_path, conf)
+                try:
+                    thumb_path = load_resize_and_save_thumbnail(panorama_path, 600)
+                except Exception as e:
+                    thumb_path = None
+                    logger.info(e)
+                update_panorama_path(extract_dir, panorama_path, conf, thumb_path)
             except Exception as e:
                 logger.info(e)
                 record_stitching_exception(extract_dir, str(e))
