@@ -421,7 +421,24 @@ def get_stats():
                 UploadFileModel.label_studio_project is not None).group_by(UploadFileModel.label_studio_project)
         ls_results = session.exec(ls_statement).all()
         ls_results = [tuple(v) for v in ls_results if v[0]]
+        unreviewed_statement = select(func.count(UploadFileModel.id)).where(UploadFileModel.approved == None)
+        unreviewed_count = session.exec(unreviewed_statement).one()
+        retake_statement = select(func.count(UploadFileModel.id)).where(UploadFileModel.approved == False)
+        retake_count = session.exec(retake_statement).one()
+        needs_linked_statement = select(func.count(UploadFileModel.id)).where(
+                UploadFileModel.bugbox_sample_id == None).where(
+                UploadFileModel.nota_sample == None)
+        needs_linked_count = session.exec(needs_linked_statement).one()
+        not_completed_sattement = select(func.count(UploadFileModel.id)).where(or_(
+                UploadFileModel.bugbox_croped_saved == '',
+                UploadFileModel.bugbox_croped_saved == None
+            )).where(UploadFileModel.nota_sample.is_not(True))
+        not_completed_count = session.exec(not_completed_sattement).one()
         stats.update({
-            "label_studio_projects": ls_results if ls_results else None
+            "label_studio_projects": ls_results if ls_results else None,
+            "unreviewed_count": unreviewed_count,
+            "retake_count": retake_count,
+            "needs_linked_count": needs_linked_count,
+            "not_completed_count": not_completed_count,
         })
         return stats
