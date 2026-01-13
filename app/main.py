@@ -20,7 +20,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_405_METHOD_NOT_ALLOWED
 
 from . import constants
-from .bg_tasks import background_stitch_imgs
+from .bg_tasks import background_stitch_imgs, bg_update_thumbs
 from .models import (
     UploadFileModel,
     UploadFileUpdate,
@@ -334,3 +334,12 @@ def read_category_counts():
     Get summary stats.
     """
     return get_stats()
+
+
+@app.post("/create-thumbnails/")
+async def create_thumbnails(background_tasks: BackgroundTasks):
+    """
+    Temporary endpoint to create thumbnail images for records without them.
+    """
+    background_tasks.add_task(bg_update_thumbs)
+    return {"message": "started bg_update_thumbs"}
