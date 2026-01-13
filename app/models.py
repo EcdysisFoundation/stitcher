@@ -155,7 +155,7 @@ def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confi
         rec.panorama_path = str(panorama_path)
         rec.panorama_confidence = panorama_confidence
         rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
-        rec.panorama_thumbnail_path = str(panorama_thumbnail_path)
+        rec.panorama_thumbnail_path = str(panorama_thumbnail_path) if panorama_thumbnail_path else None
         # clear fields that are no longer valid
         rec.predictions = []
         rec.approved = None
