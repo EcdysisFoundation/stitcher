@@ -47,7 +47,10 @@ def get_pano_path(extract_dir):
 
 def load_resize_and_save_thumbnail(path, new_width, suffix="_thumbnail"):
     # Load image
-    img = cv2.imread(path)
+    try:
+        img = cv2.imread(path)
+    except cv2.error as e:
+        print(f"Error loading image: {e}")
     if img is None:
         raise FileNotFoundError(f"Could not read image: {path}")
 
