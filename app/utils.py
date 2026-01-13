@@ -51,6 +51,7 @@ def load_resize_and_save_thumbnail(path, new_width, suffix="_thumbnail"):
         img = cv2.imread(path)
     except cv2.error as e:
         print(f"Error loading image: {e}")
+        img = None
     if img is None:
         raise FileNotFoundError(f"Could not read image: {path}")
 
