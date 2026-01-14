@@ -6,7 +6,7 @@ import cv2 as cv
 from pathlib import Path
 from pydantic import validate_call
 
-from .models import update_panorama_path, record_stitching_exception, thumbnail_update
+from .models import update_panorama_path, record_stitching_exception
 from .stitching import AffineStitcher
 from .utils import get_image_strs, get_pano_path, load_resize_and_save_thumbnail
 
