@@ -329,7 +329,18 @@ def datatables_uploads(start: int, length: int, params):
             statement = statement.where(
                 UploadFileModel.nota_sample == True
             )
-        statement = statement.order_by(UploadFileModel.id.desc())
+        if params[constants.INDEX_DATATABLES_HAS_DUPLICATE] == 'true':
+            dup_upload_dir_name = (
+                select(UploadFileModel.upload_dir_name)
+                .group_by(UploadFileModel.upload_dir_name)
+                .having(func.count(UploadFileModel.id) > 1)
+                .subquery()
+            )
+            statement = (
+                statement.where(UploadFileModel.upload_dir_name.in_(select(dup_upload_dir_name.c.upload_dir_name))).order_by(UploadFileModel.upload_dir_name)
+            )
+        else:
+            statement = statement.order_by(UploadFileModel.id.desc())
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
         statement = statement.offset(start).limit(length)
@@ -442,38 +453,3 @@ def get_stats():
             "not_completed_count": not_completed_count,
         })
         return stats
-
-
-def update_one_thumbnail(guid: uuid.UUID):
-    """
-    Update one record at a time to keep previous recs to any failure.
-    """
-    # this is a temp function
-    # avoid circular imports
-    from .utils import load_resize_and_save_thumbnail
-    with Session(ENGINE) as session:
-
-        statement = select(UploadFileModel).where(UploadFileModel.guid == guid)
-        rec = session.exec(statement).first()
-        p_path = rec.panorama_path
-        thumb_path = load_resize_and_save_thumbnail(p_path, 600)
-        if thumb_path:
-            rec.panorama_thumbnail_path = str(thumb_path)
-            session.add(rec)
-            session.commit()
-
-
-def thumbnail_update():
-    """
-    Get a list of records to update.
-    """
-    # this is a temp function
-    with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(
-            UploadFileModel.panorama_thumbnail_path == None).where(
-                UploadFileModel.panorama_path.is_not(None)
-            ).options(load_only(UploadFileModel.guid))
-        results = session.exec(statement).all()
-        for r in results:
-            print(f'updating {r.guid}')
-            update_one_thumbnail(r.guid)
