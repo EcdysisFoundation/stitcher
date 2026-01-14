@@ -329,7 +329,18 @@ def datatables_uploads(start: int, length: int, params):
             statement = statement.where(
                 UploadFileModel.nota_sample == True
             )
-        statement = statement.order_by(UploadFileModel.id.desc())
+        if params[constants.INDEX_DATATABLES_HAS_DUPLICATE] == 'true':
+            dup_upload_dir_name = (
+                select(UploadFileModel.upload_dir_name)
+                .group_by(UploadFileModel.upload_dir_name)
+                .having(func.count(UploadFileModel.id) > 1)
+                .subquery()
+            )
+            statement = (
+                statement.where(UploadFileModel.upload_dir_name.in_(select(dup_upload_dir_name.c.upload_dir_name))).order_by(UploadFileModel.upload_dir_name)
+            )
+        else:
+            statement = statement.order_by(UploadFileModel.id.desc())
         rf = select(func.count()).select_from(statement)
         records_filtered = session.exec(rf).one()
         statement = statement.offset(start).limit(length)
@@ -475,5 +486,7 @@ def thumbnail_update():
             ).options(load_only(UploadFileModel.guid))
         results = session.exec(statement).all()
         for r in results:
+            if str(r.guid) in ('4e904874-a448-414b-aff6-75332424c40c',):
+                continue
             print(f'updating {r.guid}')
             update_one_thumbnail(r.guid)
