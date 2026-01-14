@@ -51,8 +51,3 @@ async def background_stitch_imgs(extract_dir: Path, conf: float):
             except Exception as e:
                 logger.info(e)
                 record_stitching_exception(extract_dir, str(e))
-
-
-async def bg_update_thumbs():
-    # this is a temp function
-    thumbnail_update()
