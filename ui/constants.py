@@ -1,0 +1,52 @@
+# Stitcher API Constants
+STITCHER_GUID = 'guid'
+SSTITCHER_EXTRACT_PATH = 'extract_path'
+STITCHER_UPLOAD_DIR_NAME = 'upload_dir_name'
+STITCHER_PANORAMA_PATH = 'panorama_path'
+STITCHER_PANORAMA_THUMBNAIL_PATH = 'panorama_thumbnail_path'
+STITCHER_PANORAMA_WIDTH = 'panorama_width'
+STITCHER_PANORAMA_HEIGHT = 'panorama_height'
+STITCHER_PANORAMA_CONFIDENCE = 'panorama_confidence'
+STITCHER_APPROVED = 'approved'
+STITCHER_PREDICTIONS = 'predictions'
+STITCHER_PREDICTIONS_TIMESTAMP = 'predictions_timestamp'
+STITCHER_PREDICTIONS_COCO = 'predictions_coco'
+STITCHER_PREDICTIONS_TIMESTAMP_COCO = 'predictions_timestamp_coco'
+STITCHER_SENT_LABEL_STUDIO = 'sent_label_studio'
+STITCHER_LABEL_STUDIO_PROJECT = 'label_studio_project'
+STITCHER_STITCHING_EXCEPTION = 'stitching_exception'
+STITCHER_STITCHING_EXCEPTION_AT = 'stitching_exception_at'
+STITCHER_PANORAMA_TIMESTAMP = 'panorama_timestamp'
+STITCHER_CREATED_AT = 'created_at'
+STITCHER_ANNOTATIONS = 'annotations'
+STITCHER_ANNOTATIONS_UPDATED_AT = 'annotations_updated_at'
+STITCHER_ANNOTATIONS_SEGMENT = 'annotations_segment'
+STITCHER_ANNOTATOR_SEGMENT = 'annotator_segment'
+STITCHER_ANNOTATIONS_UPDATED_AT_SEGMENT = 'annotations_updated_at_segment'
+STITCHER_BUGBOX_SAMPLE_ID = 'bugbox_sample_id'
+STITCHER_NOTA_SAMPLE = 'nota_sample'
+STITCHER_BUGBOX_CROPED_SAVED = 'bugbox_croped_saved'
+
+STITCHER_ERROR = 'ERROR'
+
+STITCHER_TIMEFIELDS = [
+    STITCHER_STITCHING_EXCEPTION_AT,
+    STITCHER_PANORAMA_TIMESTAMP,
+    STITCHER_CREATED_AT
+]
+STITCHER_FORM_IDENT = 'form_ident'
+STITCHER_FORM_DEFAULT = 'defaultValue'
+STITCHER_FORM_CROPSAVE = 'cropSave'
+STITCHER_FORM_REQUIRED_KEYS = [
+    STITCHER_PANORAMA_PATH,
+    STITCHER_APPROVED,
+    STITCHER_ANNOTATIONS_SEGMENT,
+    STITCHER_UPLOAD_DIR_NAME
+]
+STITCHER_LABEL_IMG = 'label_r_001.jpg'
+STITCHER_APPROVED_CHOICES = (
+        (None, '---'),
+        (True, 'Approved'),
+        (False, 'Retake')
+    )
+STITCHER_STATS_LS_PROJECTS = 'label_studio_projects'
