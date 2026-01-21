@@ -142,11 +142,12 @@ async def upload_zip_images(
 def list_upload_files(
         offset: int = 0,
         limit: int = Query(default=10, le=100),
-        approved: bool = Query(default=None)):
+        approved: bool = Query(default=None),
+        upload_dir_name: str = Query(default=None)):
     """
     List the uploaded zip files and their related information.
     """
-    records = read_upload_files(offset, limit, approved)
+    records = read_upload_files(offset, limit, approved, upload_dir_name)
     return records
 
 
