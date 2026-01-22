@@ -198,7 +198,8 @@ def read_upload_files(offset: int, limit: int, approved: bool | None, upload_dir
         if approved is not None:
             statement = statement.where(UploadFileModel.approved == approved)
         if upload_dir_name is not None:
-            statement = statement.where(UploadFileModel.upload_dir_name == upload_dir_name)
+            search_pattern = f'{upload_dir_name}%'
+            statement = statement.where(UploadFileModel.upload_dir_name.like(search_pattern))
         statement = statement.offset(offset).limit(limit)
         result = session.exec(statement).all()
         return result
