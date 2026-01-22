@@ -146,6 +146,7 @@ def list_upload_files(
         upload_dir_name: str = Query(default=None)):
     """
     List the uploaded zip files and their related information.
+    Upload_dir_name matches records .like(upload_dir_name%)
     """
     records = read_upload_files(offset, limit, approved, upload_dir_name)
     return records
