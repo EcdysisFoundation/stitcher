@@ -51,6 +51,7 @@ class UploadFileModelBase(SQLModel):
     bugbox_sample_id: int | None
     nota_sample: bool | None  # indicates bugbox_sample_id should remain None
     bugbox_croped_saved: str | None
+    omit_from_training: bool | None
 
 
 class UploadFileModel(UploadFileModelBase, table=True):
@@ -67,6 +68,7 @@ class UploadFileUpdate(BaseModel):
     bugbox_sample_id: Optional[int] = None
     nota_sample: Optional[bool] = None
     bugbox_croped_saved: Optional[str] = None
+    omit_from_training: Optional[bool] = None
 
 
 class UploadFileModelPublic(UploadFileModelBase):
@@ -94,6 +96,7 @@ class UploadFileModelPublic(UploadFileModelBase):
     annotations_updated_at_segment: str | None
     bugbox_sample_id: int | None
     bugbox_croped_saved: str | None
+    omit_from_training: bool | None
 
 
 @validate_call
@@ -371,7 +374,8 @@ def datatables_uploads(start: int, length: int, params):
             UploadFileModel.annotations_updated_at_segment,
             UploadFileModel.bugbox_sample_id,
             UploadFileModel.nota_sample,
-            UploadFileModel.bugbox_croped_saved
+            UploadFileModel.bugbox_croped_saved,
+            UploadFileModel.omit_from_training
         ))
         results = session.exec(statement).all()
         return {
