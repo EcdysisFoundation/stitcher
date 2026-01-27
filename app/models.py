@@ -146,7 +146,11 @@ def get_panorama_path(extract_path: Path):
 
 
 @validate_call
-def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confidence: float, panorama_thumbnail_path: Path | None):
+def update_panorama_path(
+        extract_path: Path,
+        panorama_path: Path,
+        panorama_confidence: float,
+        panorama_thumbnail_path: Path | None):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
@@ -160,6 +164,8 @@ def update_panorama_path(extract_path: Path, panorama_path: Path, panorama_confi
         rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
         rec.panorama_thumbnail_path = str(panorama_thumbnail_path) if panorama_thumbnail_path else None
         # clear fields that are no longer valid
+        rec.stitching_exception = None
+        rec.stitching_exception_at = None
         rec.predictions = []
         rec.approved = None
         rec.predictions_timestamp = None
