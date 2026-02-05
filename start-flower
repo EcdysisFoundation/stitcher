@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -e
+
+# Same Celery app path as worker
+celery -A app.celery_app flower --port=5555 --loglevel=INFO

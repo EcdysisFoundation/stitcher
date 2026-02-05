@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+
+# Example: if your Celery app is app.celery_app:celery
+# or app.worker.celery, adjust as needed:
+celery -A app.celery_app worker --loglevel=INFO

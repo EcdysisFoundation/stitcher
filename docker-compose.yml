@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
     container_name: stitcher_fastapi
+    image: stitcher_fastapi
     deploy:
       resources:
         limits:
@@ -13,9 +14,43 @@ services:
       - ./app:/code/app
       - /pool1/srv/label-studio/mydata/stitchermedia:/media
       - sqlite_data:/data
+      # - /Users/mikaylaelectra/repos/label-studio/mydata/stitchermedia:/media
     command: fastapi run app/main.py --port 8090
     ports:
           - "8090:8090"
+
+  redis:
+    image: docker.io/redis:7.2
+    container_name: stitcher_redis
+    command: --port 6360
+    ports:
+      - "6360:6360"
+
+  celery_worker:
+    container_name: stitcher_worker
+    image: stitcher_fastapi
+    command: /start-celeryworker
+    volumes:
+      - ./app:/code/app
+    environment:
+    - CELERY_BROKER_URL=redis://redis:6360/0
+    - CELERY_RESULT_BACKEND=redis://redis:6360/0
+    depends_on:
+      - redis
+
+  flower:
+    container_name: stitcher_flower
+    image: stitcher_fastapi
+    command: /start-flower
+    volumes:
+      - ./app:/code/app
+    environment:
+    - CELERY_BROKER_URL=redis://redis:6360/0
+    - CELERY_RESULT_BACKEND=redis://redis:6360/0
+    ports:
+      - 5557:5555
+    depends_on:
+      - redis
 
 volumes:
   sqlite_data:
