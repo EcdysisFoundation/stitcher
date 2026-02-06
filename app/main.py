@@ -10,7 +10,6 @@ from typing import List
 
 
 from fastapi import (
-    BackgroundTasks,
     HTTPException, FastAPI,
     Query, UploadFile, Request, status
 )
@@ -20,7 +19,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_405_METHOD_NOT_ALLOWED
 
 from . import constants
-from .bg_tasks import background_stitch_imgs
+from .tasks import background_stitch_imgs
 from .models import (
     UploadFileModel,
     UploadFileUpdate,
@@ -80,8 +79,7 @@ def read_root():
 
 @app.post("/upload-zip-images/")
 async def upload_zip_images(
-    file: UploadFile,
-    background_tasks: BackgroundTasks,
+        file: UploadFile,
         confidence_threshold: float = Query(default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
     """
     Upload a zip file of images intended to be stitched together into a single panorama.
@@ -122,19 +120,11 @@ async def upload_zip_images(
         create_upload_file(guid, extract_path, upload_dir_name)
 
         messages.update({"zip_message": f"Images from {file.filename} extracted successfully to {extract_path}"})
-    except zipfile.BadZipFile:
-        os.remove(zip_path)  # Clean up invalid zip file
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
-            detail="Invalid zip file, zipfile.BadZipFile"
-        )
     except Exception as e:
-        os.remove(zip_path)  # Clean up in case of other errors
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
-            detail=f"Exception: {e}"
-        )
-    background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
+        os.remove(zip_path)  # Clean up in case of errors
+        messages.update({constants.ERROR_MSG_KEY: e})
+        return messages
+    background_stitch_imgs.delay(extract_path, confidence_threshold)
     return messages
 
 
@@ -167,7 +157,6 @@ def index_datatables(request: Request, start: int, length: int = 10):
 @app.post("/update-stitching/")
 async def update_stitching(
     guid: uuid.UUID,
-    background_tasks: BackgroundTasks,
     confidence_threshold: float = Query(
         default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
     """
@@ -182,7 +171,7 @@ async def update_stitching(
             detail=f"Not Allowed: record.approved is set to {record.approved}"
         )
     extract_path = get_extract_path(guid)
-    background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
+    background_stitch_imgs.delay(extract_path, confidence_threshold)
     return {'message': f'Stitching process started for: {guid} with confidence_threshold of {confidence_threshold}'}
 
 
