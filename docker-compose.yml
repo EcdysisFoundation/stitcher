@@ -1,6 +1,7 @@
 
 services:
   web:
+    user: "${UID:-1000}:${GID:-1000}"  # macOS: 501:20, Linux: defaults 1000:1000
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -12,8 +13,12 @@ services:
           memory: 20g
     volumes:
       - ./app:/code/app
-      - /pool1/srv/label-studio/mydata/stitchermedia:/media
+      - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
+      # - /pool1/srv/label-studio/mydata/stitchermedia:/media
       - sqlite_data:/data
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6360/0
+      - CELERY_RESULT_BACKEND=redis://redis:6360/0
     command: fastapi run app/main.py --port 8090
     ports:
           - "8090:8090"
@@ -30,6 +35,7 @@ services:
       - "6360:6360"
 
   celery_worker:
+    user: "${UID:-1000}:${GID:-1000}"  # macOS: 501:20, Linux: defaults 1000:1000
     container_name: stitcher_worker
     image: stitcher_fastapi
     command: /start-celeryworker
@@ -39,7 +45,8 @@ services:
           memory: 20g
     volumes:
       - ./app:/code/app
-      - /pool1/srv/label-studio/mydata/stitchermedia:/media
+      - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
+      #- /pool1/srv/label-studio/mydata/stitchermedia:/media
       - sqlite_data:/data
     environment:
     - CELERY_BROKER_URL=redis://redis:6360/0
@@ -48,6 +55,7 @@ services:
       - redis
 
   flower:
+    user: "${UID:-1000}:${GID:-1000}"  # macOS: 501:20, Linux: defaults 1000:1000
     container_name: stitcher_flower
     image: stitcher_fastapi
     command: /start-flower
@@ -57,7 +65,8 @@ services:
           memory: 9g
     volumes:
       - ./app:/code/app
-      - /pool1/srv/label-studio/mydata/stitchermedia:/media
+      - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
+      #- /pool1/srv/label-studio/mydata/stitchermedia:/media
       - sqlite_data:/data
     environment:
     - CELERY_BROKER_URL=redis://redis:6360/0
