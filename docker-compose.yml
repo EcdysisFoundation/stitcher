@@ -16,9 +16,6 @@ services:
       - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
       # - /pool1/srv/label-studio/mydata/stitchermedia:/media
       - sqlite_data:/data
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6360/0
-      - CELERY_RESULT_BACKEND=redis://redis:6360/0
     command: fastapi run app/main.py --port 8090
     ports:
           - "8090:8090"
@@ -48,9 +45,6 @@ services:
       - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
       #- /pool1/srv/label-studio/mydata/stitchermedia:/media
       - sqlite_data:/data
-    environment:
-    - CELERY_BROKER_URL=redis://redis:6360/0
-    - CELERY_RESULT_BACKEND=redis://redis:6360/0
     depends_on:
       - redis
 
@@ -68,9 +62,6 @@ services:
       - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
       #- /pool1/srv/label-studio/mydata/stitchermedia:/media
       - sqlite_data:/data
-    environment:
-    - CELERY_BROKER_URL=redis://redis:6360/0
-    - CELERY_RESULT_BACKEND=redis://redis:6360/0
     ports:
       - 5557:5555
     depends_on:
