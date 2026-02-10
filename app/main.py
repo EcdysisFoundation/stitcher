@@ -35,10 +35,11 @@ from .models import (
     update_annotations_post,
     update_annotations_segment_post,
     update_sent_label_studio,
+    update_panorama_path,
     update_predictions_post,
     update_predictions_coco_post,
     update_upload_file_update)
-from .utils import get_extract_path
+from .utils import get_extract_path, get_stitch_img_params
 
 
 LOGGER = logging.getLogger(__name__)
@@ -126,7 +127,13 @@ async def upload_zip_images(
             os.remove(zip_path)
         messages.update({constants.ERROR_MSG_KEY: e})
         return messages
-    background_stitch_imgs.delay(extract_path, confidence_threshold)
+    pano_args = get_stitch_img_params(extract_path, confidence_threshold)
+    update_panorama_path(**pano_args)
+    background_stitch_imgs.delay(
+        extract_path,
+        confidence_threshold,
+        pano_args['panorama_path'],
+        pano_args['panorama_thumbnail_path'])
     return messages
 
 
@@ -173,7 +180,13 @@ async def update_stitching(
             detail=f"Not Allowed: record.approved is set to {record.approved}"
         )
     extract_path = get_extract_path(guid)
-    background_stitch_imgs.delay(extract_path, confidence_threshold)
+    pano_args = get_stitch_img_params(extract_path, confidence_threshold)
+    update_panorama_path(**pano_args)
+    background_stitch_imgs.delay(
+        extract_path,
+        confidence_threshold,
+        pano_args['panorama_path'],
+        pano_args['panorama_thumbnail_path'])
     return {'message': f'Stitching process started for: {guid} with confidence_threshold of {confidence_threshold}'}
 
 

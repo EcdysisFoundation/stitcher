@@ -18,8 +18,7 @@ from . import constants
 SQLITE_FILE_NAME = '/data/database.db'
 SQLITE_URL = f'sqlite:///{SQLITE_FILE_NAME}'  # also stated in alembic.ini
 
-CONNECT_ARGS = {'check_same_thread': False}
-ENGINE = create_engine(SQLITE_URL, echo=True, connect_args=CONNECT_ARGS)
+ENGINE = create_engine(SQLITE_URL, echo=True)
 
 
 class UploadFileModelBase(SQLModel):

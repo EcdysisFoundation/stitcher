@@ -5,9 +5,9 @@ import cv2 as cv
 from pathlib import Path
 
 from .celery_app import celery
-from .models import update_panorama_path, record_stitching_exception
+# from .models import record_stitching_exception
 from .stitching import AffineStitcher
-from .utils import get_image_strs, get_pano_path, load_resize_and_save_thumbnail
+from .utils import get_image_strs, load_resize_and_save_thumbnail
 
 
 logger = logging.getLogger(__name__)
@@ -20,14 +20,17 @@ logger.addHandler(stream_handler)
 
 
 @celery.task
-def background_stitch_imgs(extract_dir: Path, conf: float):
+def background_stitch_imgs(
+        extract_dir: Path,
+        conf: float,
+        panorama_path,
+        panorama_thumbnail_path):
 
     settings = {
         'crop': False,
         'confidence_threshold': conf,
         'blend_strength': 1
     }
-    panorama_path = get_pano_path(extract_dir)
     img_paths = get_image_strs(extract_dir)
 
     if len(img_paths) > 1:
@@ -39,11 +42,12 @@ def background_stitch_imgs(extract_dir: Path, conf: float):
             logger.info(f'writing panorma to {panorama_path}')
             cv.imwrite(panorama_path, panorama)
             try:
-                thumb_path = load_resize_and_save_thumbnail(panorama_path, 600)
+                load_resize_and_save_thumbnail(panorama_path, 600, panorama_thumbnail_path)
             except Exception as e:
-                thumb_path = None
                 logger.info(e)
-            update_panorama_path(extract_dir, panorama_path, conf, thumb_path)
         except Exception as e:
             logger.info(e)
-            record_stitching_exception(extract_dir, str(e))
+            # database entry disabled
+            # creates sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked
+            # when using Celery and SQLite
+            # record_stitching_exception(extract_dir, str(e))
