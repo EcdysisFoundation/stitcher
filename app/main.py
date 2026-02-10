@@ -7,6 +7,7 @@ import time
 import uuid
 import zipfile
 from typing import List
+from pathlib import Path
 
 
 from fastapi import (
@@ -121,7 +122,8 @@ async def upload_zip_images(
 
         messages.update({"zip_message": f"Images from {file.filename} extracted successfully to {extract_path}"})
     except Exception as e:
-        os.remove(zip_path)  # Clean up in case of errors
+        if Path(zip_path).exists():
+            os.remove(zip_path)
         messages.update({constants.ERROR_MSG_KEY: e})
         return messages
     background_stitch_imgs.delay(extract_path, confidence_threshold)
