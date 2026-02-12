@@ -50,12 +50,12 @@ def background_stitch_imgs(
             try:
                 load_resize_and_save_thumbnail(panorama_path, 600, panorama_thumbnail_path)
             except Exception as e:
-                exception += e
+                exception += str(e)
                 logger.info(e)
             finishing_time = datetime.datetime.now(datetime.timezone.utc)
         except Exception as e:
             logger.info(e)
-            exception += e
+            exception += str(e)
 
     if exception and not finishing_time:
         finishing_time = datetime.datetime.now(datetime.timezone.utc)
