@@ -11,6 +11,7 @@ from pathlib import Path
 
 
 from fastapi import (
+    Depends,
     HTTPException, FastAPI,
     Query, UploadFile, Request, status
 )
@@ -18,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_405_METHOD_NOT_ALLOWED
+from sqlmodel import Session, select
 
 from . import constants
 from .tasks import background_stitch_imgs
@@ -25,6 +27,7 @@ from .models import (
     UploadFileModel,
     UploadFileUpdate,
     UploadFileModelPublic,
+    UploadFileWithCeleryTask,
     create_upload_file,
     datatables_uploads,
     delete_by_guid,
@@ -39,6 +42,8 @@ from .models import (
     update_predictions_post,
     update_predictions_coco_post,
     update_upload_file_update)
+from .models_celery import (
+    CeleryTask, create_celery_db_and_tables, get_celery_read_session)
 from .utils import get_extract_path, get_stitch_img_params
 
 
@@ -72,6 +77,7 @@ app.mount("/static", StaticFiles(directory=constants.MEDIA_PATH), name="static")
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
+    create_celery_db_and_tables()
 
 
 @app.get("/")
@@ -99,18 +105,18 @@ async def upload_zip_images(
             detail=f"Invalid file type. Only {', '.join(allowed_types)} are allowed."
         )
     messages = {}
+    guid = uuid.uuid4()
     # Create a temporary path for the uploaded ZIP file
     zip_path = os.path.join(constants.MEDIA_PATH, file.filename)
 
     # Save the uploaded ZIP file
     with open(zip_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-
     # Extract images from the ZIP file
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             # Create a subdirectory for the extracted images
-            guid = uuid.uuid4()
+
             extract_path = get_extract_path(guid)
             upload_dir_name = os.path.splitext(file.filename)[0]
             os.makedirs(extract_path, exist_ok=True)
@@ -130,6 +136,7 @@ async def upload_zip_images(
     pano_args = get_stitch_img_params(extract_path, confidence_threshold)
     update_panorama_path(**pano_args)
     background_stitch_imgs.delay(
+        str(guid),
         extract_path,
         confidence_threshold,
         pano_args['panorama_path'],
@@ -154,6 +161,20 @@ def list_upload_files(
 @app.get("/list-upload/", response_model=UploadFileModel)
 async def list_upload_file(guid: uuid.UUID):
     return read_upload_file(guid)
+
+
+@app.get("/list-upload-w-task/", response_model=UploadFileWithCeleryTask)
+def list_upload_file_w_task(
+        guid: uuid.UUID,
+        celery_db: Session = Depends(get_celery_read_session)):
+    upload_file = read_upload_file(guid)
+    task = celery_db.exec(select(CeleryTask).where(
+        CeleryTask.upload_file_guid == str(guid)).order_by(
+            CeleryTask.starting_timestamp.desc()).limit(1)).one_or_none()
+    return UploadFileWithCeleryTask(
+        uploadfile=UploadFileModel.model_validate(upload_file),
+        task=CeleryTask.model_validate(task) if task else None,
+    )
 
 
 @app.get("/uploads")
@@ -183,6 +204,7 @@ async def update_stitching(
     pano_args = get_stitch_img_params(extract_path, confidence_threshold)
     update_panorama_path(**pano_args)
     background_stitch_imgs.delay(
+        str(guid),
         extract_path,
         confidence_threshold,
         pano_args['panorama_path'],

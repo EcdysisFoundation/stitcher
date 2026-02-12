@@ -13,6 +13,7 @@ from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
 
 from . import constants
+from .models_celery import CeleryTask
 
 
 SQLITE_FILE_NAME = '/data/database.db'
@@ -58,7 +59,10 @@ class UploadFileModel(UploadFileModelBase, table=True):
 
 
 def create_db_and_tables():
-    SQLModel.metadata.create_all(ENGINE)
+    SQLModel.metadata.create_all(
+        ENGINE,
+        tables=[UploadFileModel.__table__]
+    )
 
 
 class UploadFileUpdate(BaseModel):
@@ -96,6 +100,11 @@ class UploadFileModelPublic(UploadFileModelBase):
     bugbox_sample_id: int | None
     bugbox_croped_saved: str | None
     omit_from_training: bool | None
+
+
+class UploadFileWithCeleryTask(SQLModel):
+    uploadfile: UploadFileModel
+    task: CeleryTask | None = None
 
 
 @validate_call
