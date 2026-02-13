@@ -7,10 +7,11 @@ import time
 import uuid
 import zipfile
 from typing import List
+from pathlib import Path
 
 
 from fastapi import (
-    BackgroundTasks,
+    Depends,
     HTTPException, FastAPI,
     Query, UploadFile, Request, status
 )
@@ -18,13 +19,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_405_METHOD_NOT_ALLOWED
+from sqlmodel import Session, select
 
 from . import constants
-from .bg_tasks import background_stitch_imgs
+from .tasks import background_stitch_imgs
 from .models import (
     UploadFileModel,
     UploadFileUpdate,
     UploadFileModelPublic,
+    UploadFileWithCeleryTask,
     create_upload_file,
     datatables_uploads,
     delete_by_guid,
@@ -35,10 +38,13 @@ from .models import (
     update_annotations_post,
     update_annotations_segment_post,
     update_sent_label_studio,
+    update_panorama_path,
     update_predictions_post,
     update_predictions_coco_post,
     update_upload_file_update)
-from .utils import get_extract_path
+from .models_celery import (
+    CeleryTask, create_celery_db_and_tables, get_celery_read_session)
+from .utils import get_extract_path, get_stitch_img_params
 
 
 LOGGER = logging.getLogger(__name__)
@@ -71,6 +77,7 @@ app.mount("/static", StaticFiles(directory=constants.MEDIA_PATH), name="static")
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
+    create_celery_db_and_tables()
 
 
 @app.get("/")
@@ -80,8 +87,7 @@ def read_root():
 
 @app.post("/upload-zip-images/")
 async def upload_zip_images(
-    file: UploadFile,
-    background_tasks: BackgroundTasks,
+        file: UploadFile,
         confidence_threshold: float = Query(default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
     """
     Upload a zip file of images intended to be stitched together into a single panorama.
@@ -99,18 +105,18 @@ async def upload_zip_images(
             detail=f"Invalid file type. Only {', '.join(allowed_types)} are allowed."
         )
     messages = {}
+    guid = uuid.uuid4()
     # Create a temporary path for the uploaded ZIP file
     zip_path = os.path.join(constants.MEDIA_PATH, file.filename)
 
     # Save the uploaded ZIP file
     with open(zip_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-
     # Extract images from the ZIP file
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             # Create a subdirectory for the extracted images
-            guid = uuid.uuid4()
+
             extract_path = get_extract_path(guid)
             upload_dir_name = os.path.splitext(file.filename)[0]
             os.makedirs(extract_path, exist_ok=True)
@@ -122,19 +128,19 @@ async def upload_zip_images(
         create_upload_file(guid, extract_path, upload_dir_name)
 
         messages.update({"zip_message": f"Images from {file.filename} extracted successfully to {extract_path}"})
-    except zipfile.BadZipFile:
-        os.remove(zip_path)  # Clean up invalid zip file
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
-            detail="Invalid zip file, zipfile.BadZipFile"
-        )
     except Exception as e:
-        os.remove(zip_path)  # Clean up in case of other errors
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
-            detail=f"Exception: {e}"
-        )
-    background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
+        if Path(zip_path).exists():
+            os.remove(zip_path)
+        messages.update({constants.ERROR_MSG_KEY: e})
+        return messages
+    pano_args = get_stitch_img_params(extract_path, confidence_threshold)
+    update_panorama_path(**pano_args)
+    background_stitch_imgs.delay(
+        str(guid),
+        extract_path,
+        confidence_threshold,
+        pano_args['panorama_path'],
+        pano_args['panorama_thumbnail_path'])
     return messages
 
 
@@ -157,6 +163,20 @@ async def list_upload_file(guid: uuid.UUID):
     return read_upload_file(guid)
 
 
+@app.get("/list-upload-w-task/", response_model=UploadFileWithCeleryTask)
+def list_upload_file_w_task(
+        guid: uuid.UUID,
+        celery_db: Session = Depends(get_celery_read_session)):
+    upload_file = read_upload_file(guid)
+    task = celery_db.exec(select(CeleryTask).where(
+        CeleryTask.upload_file_guid == str(guid)).order_by(
+            CeleryTask.starting_timestamp.desc()).limit(1)).one_or_none()
+    return UploadFileWithCeleryTask(
+        uploadfile=UploadFileModel.model_validate(upload_file),
+        task=CeleryTask.model_validate(task) if task else None,
+    )
+
+
 @app.get("/uploads")
 def index_datatables(request: Request, start: int, length: int = 10):
     params = {v: request.query_params.get(v) for v in constants.INDEX_DATATABLES_PARAMS}
@@ -167,7 +187,6 @@ def index_datatables(request: Request, start: int, length: int = 10):
 @app.post("/update-stitching/")
 async def update_stitching(
     guid: uuid.UUID,
-    background_tasks: BackgroundTasks,
     confidence_threshold: float = Query(
         default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
     """
@@ -182,7 +201,14 @@ async def update_stitching(
             detail=f"Not Allowed: record.approved is set to {record.approved}"
         )
     extract_path = get_extract_path(guid)
-    background_tasks.add_task(background_stitch_imgs, extract_path, confidence_threshold)
+    pano_args = get_stitch_img_params(extract_path, confidence_threshold)
+    update_panorama_path(**pano_args)
+    background_stitch_imgs.delay(
+        str(guid),
+        extract_path,
+        confidence_threshold,
+        pano_args['panorama_path'],
+        pano_args['panorama_thumbnail_path'])
     return {'message': f'Stitching process started for: {guid} with confidence_threshold of {confidence_threshold}'}
 
 

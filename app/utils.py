@@ -45,8 +45,8 @@ def get_pano_path(extract_dir):
     return os.path.join(extract_dir, new_filename + constants.PANO_EXTENSION)
 
 
-def load_resize_and_save_thumbnail(path, new_width, suffix="_thumbnail"):
-    # Load image
+def load_resize_and_save_thumbnail(path, new_width, panorama_thumbnail_path):
+
     try:
         img = cv2.imread(path)
     except cv2.error as e:
@@ -60,14 +60,22 @@ def load_resize_and_save_thumbnail(path, new_width, suffix="_thumbnail"):
     scale = new_width / float(w)
     new_height = int(h * scale)
     resized = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
-
-    # Build new file path with suffix before extension
-    p = Path(path)
-    thumb_path = p.with_name(p.stem + suffix + p.suffix)
-
-    # Save thumbnail
-    success = cv2.imwrite(thumb_path, resized)
+    success = cv2.imwrite(panorama_thumbnail_path, resized)
     if not success:
-        raise IOError(f"Could not write image: {thumb_path}")
+        raise IOError(f"Could not write image: {panorama_thumbnail_path}")
+    return
 
-    return thumb_path
+
+def get_stitch_img_params(extract_path, confidence):
+    """
+    Returns the args for models.update_panorama_path when stitching images
+    """
+    panorama_path = get_pano_path(extract_path)
+    p = Path(panorama_path)
+    thumb_path = str(p.with_name(p.stem + '_thumbnail' + p.suffix))
+    return {
+        'extract_path': extract_path,
+        'panorama_path': panorama_path,
+        'panorama_thumbnail_path': thumb_path,
+        'panorama_confidence': confidence
+    }

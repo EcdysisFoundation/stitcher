@@ -16,6 +16,7 @@ app/images/*
 local_files
 *.db
 .vscode
+.envs
 
 ############################
 

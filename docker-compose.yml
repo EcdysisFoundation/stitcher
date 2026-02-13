@@ -1,21 +1,71 @@
 
 services:
   web:
+    user: "${UID:-1000}:${GID:-1000}"  # macOS: 501:20, Linux: defaults 1000:1000
     build:
       context: .
       dockerfile: ./Dockerfile
     container_name: stitcher_fastapi
+    image: stitcher_fastapi
     deploy:
       resources:
         limits:
           memory: 20g
     volumes:
       - ./app:/code/app
-      - /pool1/srv/label-studio/mydata/stitchermedia:/media
+      - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
+      # - /pool1/srv/label-studio/mydata/stitchermedia:/media
       - sqlite_data:/data
     command: fastapi run app/main.py --port 8090
     ports:
           - "8090:8090"
+
+  redis:
+    image: docker.io/redis:7.2
+    container_name: stitcher_redis
+    deploy:
+      resources:
+        limits:
+          memory: 9g
+    command: --port 6360
+    ports:
+      - "6360:6360"
+
+  celery_worker:
+    user: "${UID:-1000}:${GID:-1000}"  # macOS: 501:20, Linux: defaults 1000:1000
+    container_name: stitcher_worker
+    image: stitcher_fastapi
+    command: /start-celeryworker
+    deploy:
+      resources:
+        limits:
+          memory: 20g
+    volumes:
+      - ./app:/code/app
+      - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
+      #- /pool1/srv/label-studio/mydata/stitchermedia:/media
+      - sqlite_data:/data
+    depends_on:
+      - redis
+
+  flower:
+    user: "${UID:-1000}:${GID:-1000}"  # macOS: 501:20, Linux: defaults 1000:1000
+    container_name: stitcher_flower
+    image: stitcher_fastapi
+    command: /start-flower
+    deploy:
+      resources:
+        limits:
+          memory: 9g
+    volumes:
+      - ./app:/code/app
+      - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
+      #- /pool1/srv/label-studio/mydata/stitchermedia:/media
+      - sqlite_data:/data
+    ports:
+      - 5557:5555
+    depends_on:
+      - redis
 
 volumes:
   sqlite_data:

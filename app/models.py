@@ -13,13 +13,13 @@ from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
 
 from . import constants
+from .models_celery import CeleryTask
 
 
 SQLITE_FILE_NAME = '/data/database.db'
 SQLITE_URL = f'sqlite:///{SQLITE_FILE_NAME}'  # also stated in alembic.ini
 
-CONNECT_ARGS = {'check_same_thread': False}
-ENGINE = create_engine(SQLITE_URL, echo=True, connect_args=CONNECT_ARGS)
+ENGINE = create_engine(SQLITE_URL, echo=True)
 
 
 class UploadFileModelBase(SQLModel):
@@ -59,7 +59,10 @@ class UploadFileModel(UploadFileModelBase, table=True):
 
 
 def create_db_and_tables():
-    SQLModel.metadata.create_all(ENGINE)
+    SQLModel.metadata.create_all(
+        ENGINE,
+        tables=[UploadFileModel.__table__]
+    )
 
 
 class UploadFileUpdate(BaseModel):
@@ -97,6 +100,11 @@ class UploadFileModelPublic(UploadFileModelBase):
     bugbox_sample_id: int | None
     bugbox_croped_saved: str | None
     omit_from_training: bool | None
+
+
+class UploadFileWithCeleryTask(SQLModel):
+    uploadfile: UploadFileModel
+    task: CeleryTask | None = None
 
 
 @validate_call

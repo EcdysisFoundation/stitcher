@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -e
+
+celery -A app.celery_app worker --concurrency=1 -P solo --prefetch-multiplier=1 -l info
