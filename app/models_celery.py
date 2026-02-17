@@ -1,4 +1,5 @@
 import datetime
+import os
 from typing import Optional
 from sqlmodel import SQLModel, create_engine, Session, Field
 
@@ -7,8 +8,7 @@ These models are for Celery usage only for writing, while FastAPI can read them.
 These models are not registered with Alembic.
 """
 
-CELERY_SQLITE_FILE_NAME = '/data/celery_database.db'
-CELERY_DB_URL = f"sqlite:///{CELERY_SQLITE_FILE_NAME}"  # different file than your main DB
+CELERY_DB_URL = os.getenv('CELERY_DB_URL_URL', '')
 
 CELERY_DB_ENGINE = create_engine(
     CELERY_DB_URL,

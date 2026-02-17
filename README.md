@@ -17,7 +17,7 @@ To see the console logs
 
 ## database
 
-The SQLite database file (data/database.db) is in a Docker volume. A blank database will be created when starting a volume, but this will be incompatible with any existing alembic files in the repo, so these should removed for new projects.
+The SQLite database file (sqlite_data/database.db) is in a Docker volume. A blank database will be created when starting a volume, but this will be incompatible with any existing alembic files in the repo, so these should removed for new projects. SQLite does not support concurrent database writes, so additional databases may be needed, example see CELERY_DB_URL_URL in common.env
 
 ### migrations
 

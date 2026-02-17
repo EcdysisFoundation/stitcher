@@ -1,4 +1,5 @@
 import datetime
+import os
 import uuid
 from typing import List, Optional
 from pydantic import BaseModel, validate_call
@@ -16,8 +17,7 @@ from . import constants
 from .models_celery import CeleryTask
 
 
-SQLITE_FILE_NAME = '/data/database.db'
-SQLITE_URL = f'sqlite:///{SQLITE_FILE_NAME}'  # also stated in alembic.ini
+SQLITE_URL = os.getenv('SQLITE_URL', '')  # also stated in alembic.ini
 
 ENGINE = create_engine(SQLITE_URL, echo=True)
 
