@@ -34,6 +34,7 @@ from .models import (
     get_stats,
     read_upload_files,
     read_upload_file,
+    read_upload_file_abridged,
     create_db_and_tables,
     update_annotations_post,
     update_annotations_segment_post,
@@ -156,6 +157,11 @@ def list_upload_files(
     """
     records = read_upload_files(offset, limit, approved, upload_dir_name)
     return records
+
+
+@app.get("/list-upload-abridged/", response_model=UploadFileModel)
+async def list_upload_file_abridged(guid: uuid.UUID):
+    return read_upload_file_abridged(guid)
 
 
 @app.get("/list-upload/", response_model=UploadFileModel)

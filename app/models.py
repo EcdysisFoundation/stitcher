@@ -223,6 +223,27 @@ def read_upload_files(offset: int, limit: int, approved: bool | None, upload_dir
 
 
 @validate_call
+def read_upload_file_abridged(guid: uuid.UUID):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
+        statement = statement.options(load_only(
+            UploadFileModel.guid,
+            UploadFileModel.approved,
+            UploadFileModel.upload_dir_name,
+            UploadFileModel.bugbox_sample_id,
+            UploadFileModel.nota_sample,
+            UploadFileModel.bugbox_croped_saved,
+            UploadFileModel.omit_from_training,
+            UploadFileModel.panorma_timestamp,
+            UploadFileModel.panorama_path,
+        ))
+        try:
+            return session.exec(statement).one()
+        except NoResultFound:
+            raise HTTPException(status_code=404, detail="Item not found")
+
+
+@validate_call
 def read_upload_file(guid: uuid.UUID):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
