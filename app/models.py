@@ -75,7 +75,6 @@ class UploadFileUpdate(BaseModel):
 
 
 class UploadFileModelPublic(UploadFileModelBase):
-    # omit large data fields, example predictions, annotations
     id: int
     guid: str | None
     extract_path: str | None
@@ -218,6 +217,31 @@ def read_upload_files(offset: int, limit: int, approved: bool | None, upload_dir
             search_pattern = f'{upload_dir_name}%'
             statement = statement.where(UploadFileModel.upload_dir_name.like(search_pattern))
         statement = statement.offset(offset).limit(limit)
+        result = session.exec(statement).all()
+        return result
+
+
+@validate_call
+def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, upload_dir_name: str | None):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel)
+        if approved is not None:
+            statement = statement.where(UploadFileModel.approved == approved)
+        if upload_dir_name is not None:
+            search_pattern = f'{upload_dir_name}%'
+            statement = statement.where(UploadFileModel.upload_dir_name.like(search_pattern))
+        statement = statement.offset(offset).limit(limit)
+        statement = statement.options(load_only(
+            UploadFileModel.guid,
+            UploadFileModel.approved,
+            UploadFileModel.upload_dir_name,
+            UploadFileModel.bugbox_sample_id,
+            UploadFileModel.nota_sample,
+            UploadFileModel.bugbox_croped_saved,
+            UploadFileModel.omit_from_training,
+            UploadFileModel.panorma_timestamp,
+            UploadFileModel.panorama_path,
+        ))
         result = session.exec(statement).all()
         return result
 
