@@ -22,7 +22,7 @@ from starlette.status import HTTP_400_BAD_REQUEST, HTTP_405_METHOD_NOT_ALLOWED
 from sqlmodel import Session, select
 
 from . import constants
-from .tasks import background_stitch_imgs
+from .tasks import background_stitch_imgs, create_label_thumbnail
 from .models import (
     UploadFileModel,
     UploadFileUpdate,
@@ -368,3 +368,13 @@ def read_category_counts():
     Get summary stats.
     """
     return get_stats()
+
+
+@app.post("/update-label-thumb/")
+async def update_label_thumb(guid: uuid.UUID):
+    """
+    Create a label thumbnail if it doesnt exist.
+    """
+    extract_path = get_extract_path(guid)
+    create_label_thumbnail.delay(extract_path)
+    return {'message': f'Sent label thumbnail update for: {guid}'}
