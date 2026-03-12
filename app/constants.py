@@ -2,6 +2,8 @@ MEDIA_PATH = '/media'
 ERROR_MSG_KEY = 'ERROR'
 
 IMAGES_PREFIX = 'image_r'  # images for stiching must include this prefix
+STITCHER_LABEL_IMG = 'label_r_001.jpg'  # the expected label image
+STITCHER_LABEL_THUMB_IMG = 'label_r_001_thumbnail.jpg'
 
 PANO_NAME_BASE = 'panorama'
 PANO_EXTENSION = '.jpg'

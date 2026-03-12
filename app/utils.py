@@ -45,7 +45,7 @@ def get_pano_path(extract_dir):
     return os.path.join(extract_dir, new_filename + constants.PANO_EXTENSION)
 
 
-def load_resize_and_save_thumbnail(path, new_width, panorama_thumbnail_path):
+def load_resize_and_save_thumbnail(path, new_width, thumbnail_path):
 
     try:
         img = cv2.imread(path)
@@ -55,14 +55,16 @@ def load_resize_and_save_thumbnail(path, new_width, panorama_thumbnail_path):
     if img is None:
         raise FileNotFoundError(f"Could not read image: {path}")
 
-    # Resize, keeping aspect ratio
+    # Resize, keeping aspect ratio, or skip
     h, w = img.shape[:2]
+    if float(w) <= new_width:
+        return
     scale = new_width / float(w)
     new_height = int(h * scale)
     resized = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
-    success = cv2.imwrite(panorama_thumbnail_path, resized)
+    success = cv2.imwrite(thumbnail_path, resized)
     if not success:
-        raise IOError(f"Could not write image: {panorama_thumbnail_path}")
+        raise IOError(f"Could not write image: {thumbnail_path}")
     return
 
 

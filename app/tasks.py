@@ -6,6 +6,7 @@ import cv2 as cv
 from pathlib import Path
 
 from .celery_app import celery
+from .constants import STITCHER_LABEL_IMG, STITCHER_LABEL_THUMB_IMG
 from .models_celery import CeleryTask, get_celery_session
 from .stitching import AffineStitcher
 from .utils import get_image_strs, load_resize_and_save_thumbnail
@@ -18,6 +19,19 @@ stream_handler = logging.StreamHandler(sys.stdout)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
+
+
+def label_resize_thumbnail(extract_dir: Path):
+    existing_label = [path for path in Path(extract_dir).rglob(
+        f'{STITCHER_LABEL_IMG}')]
+    if not existing_label:
+        return
+    label_path = existing_label[0]
+    thumb_path = str(label_path.with_name(label_path.stem + '_thumbnail' + label_path.suffix))
+    try:
+        load_resize_and_save_thumbnail(label_path, 600, thumb_path)
+    except Exception as e:
+        logger.info(e)
 
 
 @celery.task()
@@ -38,6 +52,11 @@ def background_stitch_imgs(
     finishing_time = None
 
     img_paths = get_image_strs(extract_dir)
+
+    label_thumb_existing = [path for path in Path(extract_dir).rglob(
+        f'{STITCHER_LABEL_THUMB_IMG}')]
+    if not label_thumb_existing:
+        label_resize_thumbnail(extract_dir)
 
     if len(img_paths) > 1:
         cv.ocl.setUseOpenCL(False)
@@ -69,3 +88,8 @@ def background_stitch_imgs(
         )
         session.add(job)
         session.commit()
+
+
+@celery.task()
+def create_label_thumbnail(extract_dir: Path):
+    label_resize_thumbnail(extract_dir)
