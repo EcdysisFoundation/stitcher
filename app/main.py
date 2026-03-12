@@ -33,6 +33,7 @@ from .models import (
     delete_by_guid,
     get_stats,
     read_upload_files,
+    read_upload_files_abridged,
     read_upload_file,
     read_upload_file_abridged,
     create_db_and_tables,
@@ -156,6 +157,20 @@ def list_upload_files(
     Upload_dir_name matches records .like(upload_dir_name%)
     """
     records = read_upload_files(offset, limit, approved, upload_dir_name)
+    return records
+
+
+@app.get("/list-upload-files-abridged/", response_model=list[UploadFileModel])
+def list_upload_files_abridged(
+        offset: int = 0,
+        limit: int = Query(default=10, le=100),
+        approved: bool = Query(default=None),
+        upload_dir_name: str = Query(default=None)):
+    """
+    List the uploaded zip files and a limited amount of related information.
+    Upload_dir_name matches records .like(upload_dir_name%)
+    """
+    records = read_upload_files_abridged(offset, limit, approved, upload_dir_name)
     return records
 
 
