@@ -355,7 +355,6 @@ async def upload_annotations_segment(file: UploadFile):
             for ek in expected_keys:
                  first_label_keys[ek]
         except Exception as e:
-            # if any(item not in first_label_keys for item in expected_keys):
             messages['errors'].append(
                 f'File not as expected, did you use Label Studio export json-min? Records not saved. {e}')
             return messages
