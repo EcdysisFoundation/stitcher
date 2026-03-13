@@ -349,11 +349,15 @@ async def upload_annotations_segment(file: UploadFile):
     # now open it
     with open(temp_path, 'r') as file:
         data = json.load(file)
-        first_label_keys = data[0]['label'][0].keys()
-        expected_keys = ["closed", "points", "polygonlabels", "original_width", "original_height"]
-        if any(item not in first_label_keys for item in expected_keys):
+        try:
+            first_label_keys = data[0]['label'][0].keys()
+            expected_keys = ["closed", "points", "polygonlabels", "original_width", "original_height"]
+            for ek in expected_keys:
+                 first_label_keys[ek]
+        except Exception as e:
+            # if any(item not in first_label_keys for item in expected_keys):
             messages['errors'].append(
-                f'Expected keys {expected_keys} not in first label keys {first_label_keys}, did not save.')
+                f'File not as expected, did you use Label Studio export json-min? Records not saved. {e}')
             return messages
         for d in data:
             guid = None
