@@ -350,10 +350,10 @@ async def upload_annotations_segment(file: UploadFile):
     with open(temp_path, 'r') as file:
         data = json.load(file)
         try:
-            first_label_keys = data[0]['label'][0].keys()
+            first_label = data[0]['label'][0]
             expected_keys = ["closed", "points", "polygonlabels", "original_width", "original_height"]
             for ek in expected_keys:
-                 first_label_keys[ek]
+                 first_label[ek]
         except Exception as e:
             messages['errors'].append(
                 f'File not as expected, did you use Label Studio export json-min? Records not saved. {e}')
