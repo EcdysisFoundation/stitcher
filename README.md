@@ -39,7 +39,7 @@ Review the generated migraitons file, then run this command
 
     alembic upgrade head
 
-To undo a recent migration, run `alembic downgrade REVISION_ID` and then delete the migration file.
+To undo a recent migration, run `alembic downgrade REVISION_ID` where REVISION_ID is the previous revsion_id to the one you want to remove. Then ensure the REVSION_ID is set as current in the database with `alembic current`, which should return the REVISION_ID. Finally, it is safe to delete the migration file.
 
 ## User Interface
 

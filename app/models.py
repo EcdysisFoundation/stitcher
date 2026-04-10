@@ -51,6 +51,7 @@ class UploadFileModelBase(SQLModel):
     bugbox_sample_id: int | None
     nota_sample: bool | None  # indicates bugbox_sample_id should remain None
     bugbox_croped_saved: str | None
+    bugbox_rejected: str | None
     omit_from_training: bool | None
 
 
@@ -71,6 +72,7 @@ class UploadFileUpdate(BaseModel):
     bugbox_sample_id: Optional[int] = None
     nota_sample: Optional[bool] = None
     bugbox_croped_saved: Optional[str] = None
+    bugbox_rejected: Optional[str] = None
     omit_from_training: Optional[bool] = None
 
 
@@ -98,6 +100,7 @@ class UploadFileModelPublic(UploadFileModelBase):
     annotations_updated_at_segment: str | None
     bugbox_sample_id: int | None
     bugbox_croped_saved: str | None
+    bugbox_rejected: str | None
     omit_from_training: bool | None
 
 
@@ -116,7 +119,13 @@ def update_upload_file_update(guid: UUID, upload_file: UploadFileUpdate):
             raise HTTPException(status_code=404, detail="Item not found")
         rec_data = upload_file.model_dump(exclude_unset=True)
         if rec_data['bugbox_sample_id'] and rec_data['nota_sample']:
-            raise HTTPException(status_code=400, detail="Both Sample ID and Not a Sample cannot be True")
+            raise HTTPException(
+                status_code=400,
+                detail="Both Sample ID and Not a Sample cannot be True")
+        if rec_data['bugbox_croped_saved'] and rec_data['bugbox_rejected']:
+            raise HTTPException(
+                status_code=400,
+                detail="Both bugbox_croped_saved and bugbox_rejected cannot be True")
         rec.sqlmodel_update(rec_data)
         session.add(rec)
         session.commit()
@@ -238,6 +247,7 @@ def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, u
             UploadFileModel.bugbox_sample_id,
             UploadFileModel.nota_sample,
             UploadFileModel.bugbox_croped_saved,
+            UploadFileModel.bugbox_rejected,
             UploadFileModel.omit_from_training,
             UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
@@ -257,6 +267,7 @@ def read_upload_file_abridged(guid: uuid.UUID):
             UploadFileModel.bugbox_sample_id,
             UploadFileModel.nota_sample,
             UploadFileModel.bugbox_croped_saved,
+            UploadFileModel.bugbox_rejected,
             UploadFileModel.omit_from_training,
             UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
@@ -377,6 +388,11 @@ def datatables_uploads(start: int, length: int, params):
                 UploadFileModel.bugbox_croped_saved.is_not(None)).where(
                 UploadFileModel.bugbox_croped_saved != ''
                 )
+        if params[constants.INDEX_DATATABLES_REJECTED] == 'true':
+            statement = statement.where(
+                UploadFileModel.bugbox_rejected.is_not(None)).where(
+                UploadFileModel.bugbox_rejected != ''
+                )
         if params[constants.INDEX_DATATABLES_NOT_COMPLETED] == 'true':
             statement = statement.where(or_(
                 UploadFileModel.bugbox_croped_saved == '',
@@ -434,6 +450,7 @@ def datatables_uploads(start: int, length: int, params):
             UploadFileModel.bugbox_sample_id,
             UploadFileModel.nota_sample,
             UploadFileModel.bugbox_croped_saved,
+            UploadFileModel.bugbox_rejected,
             UploadFileModel.omit_from_training
         ))
         results = session.exec(statement).all()
@@ -506,11 +523,11 @@ def get_stats():
                 UploadFileModel.bugbox_sample_id == None).where(
                 UploadFileModel.nota_sample == None)
         needs_linked_count = session.exec(needs_linked_statement).one()
-        not_completed_sattement = select(func.count(UploadFileModel.id)).where(or_(
+        not_completed_statement = select(func.count(UploadFileModel.id)).where(or_(
                 UploadFileModel.bugbox_croped_saved == '',
                 UploadFileModel.bugbox_croped_saved == None
             )).where(UploadFileModel.nota_sample.is_not(True))
-        not_completed_count = session.exec(not_completed_sattement).one()
+        not_completed_count = session.exec(not_completed_statement).one()
         stats.update({
             "label_studio_projects": ls_results if ls_results else None,
             "unreviewed_count": unreviewed_count,
