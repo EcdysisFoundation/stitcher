@@ -38,6 +38,9 @@ class UploadFileModelBase(SQLModel):
     predictions_timestamp_coco: datetime.datetime | None
     sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
     label_studio_project: str | None = Field(default=None)
+    label_project_dir: str | None = Field(default=None)
+    label_file: str | None = Field(default=None)
+    label_file_updated_at: datetime.datetime | None
     stitching_exception: str | None = Field(default=None)
     stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
@@ -90,6 +93,9 @@ class UploadFileModelPublic(UploadFileModelBase):
     predictions_timestamp_coco: datetime.datetime | None
     sent_label_studio: str | None
     label_studio_project: str | None
+    label_project_dir: str | None
+    label_file: str | None
+    label_file_updated_at: datetime.datetime | None
     stitching_exception: str | None
     stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
@@ -190,6 +196,9 @@ def update_panorama_path(
         rec.annotations_updated_at = None
         rec.sent_label_studio = None
         rec.label_studio_project = None
+        rec.label_project_dir = None
+        rec.label_file = None
+        rec.label_file_updated_at = None
         rec.annotations_segment = None
         rec.annotator_segment = None
         rec.annotator_segment = None
@@ -251,6 +260,9 @@ def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, u
             UploadFileModel.omit_from_training,
             UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
+            UploadFileModel.label_studio_project,
+            UploadFileModel.label_project_dir,
+            UploadFileModel.label_file_updated_at
         ))
         result = session.exec(statement).all()
         return result
@@ -271,6 +283,9 @@ def read_upload_file_abridged(guid: uuid.UUID):
             UploadFileModel.omit_from_training,
             UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
+            UploadFileModel.label_studio_project,
+            UploadFileModel.label_project_dir,
+            UploadFileModel.label_file_updated_at
         ))
         try:
             return session.exec(statement).one()
@@ -326,7 +341,7 @@ def update_predictions_coco_post(guid: uuid.UUID, predictions_coco: List[dict]):
 
 
 @validate_call
-def update_sent_label_studio(guid: uuid.UUID, project: str):
+def update_sent_label_studio(guid: uuid.UUID, project: str, label_project_dir: str):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
@@ -337,6 +352,8 @@ def update_sent_label_studio(guid: uuid.UUID, project: str):
                 detail="Item not found")
         rec.sent_label_studio = rec.panorama_path
         rec.label_studio_project = project
+        rec.label_project_dir = label_project_dir
+        rec.label_file_updated_at = datetime.datetime.now(datetime.timezone.utc)
         session.add(rec)
         session.commit()
         session.refresh(rec)
@@ -439,6 +456,8 @@ def datatables_uploads(start: int, length: int, params):
             UploadFileModel.predictions_timestamp_coco,
             UploadFileModel.sent_label_studio,
             UploadFileModel.label_studio_project,
+            UploadFileModel.label_project_dir,
+            UploadFileModel.label_file_updated_at,
             UploadFileModel.stitching_exception,
             UploadFileModel.stitching_exception_at,
             UploadFileModel.panorma_timestamp,
