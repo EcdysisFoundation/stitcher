@@ -262,6 +262,7 @@ def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, u
             UploadFileModel.panorama_path,
             UploadFileModel.label_studio_project,
             UploadFileModel.label_project_dir,
+            UploadFileModel.label_file,
             UploadFileModel.label_file_updated_at
         ))
         result = session.exec(statement).all()
@@ -285,6 +286,7 @@ def read_upload_file_abridged(guid: uuid.UUID):
             UploadFileModel.panorama_path,
             UploadFileModel.label_studio_project,
             UploadFileModel.label_project_dir,
+            UploadFileModel.label_file,
             UploadFileModel.label_file_updated_at
         ))
         try:
@@ -341,7 +343,11 @@ def update_predictions_coco_post(guid: uuid.UUID, predictions_coco: List[dict]):
 
 
 @validate_call
-def update_sent_label_studio(guid: uuid.UUID, project: str, label_project_dir: str):
+def update_sent_label_studio(
+    guid: uuid.UUID,
+    project: str,
+    label_project_dir: str,
+    label_file: str):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
@@ -353,6 +359,7 @@ def update_sent_label_studio(guid: uuid.UUID, project: str, label_project_dir: s
         rec.sent_label_studio = rec.panorama_path
         rec.label_studio_project = project
         rec.label_project_dir = label_project_dir
+        rec.label_file = label_file
         rec.label_file_updated_at = datetime.datetime.now(datetime.timezone.utc)
         session.add(rec)
         session.commit()
