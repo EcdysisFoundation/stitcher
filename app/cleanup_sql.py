@@ -2,7 +2,9 @@ import sqlite3
 
 #################################################################
 ### Run ad hoc SQL in Docker like
-### docker exec -u 0 -it <container_name_or_id> python app/cleanup_sql.py
+### docker exec -u appuser -it <container_name_or_id> python app/cleanup_sql.py
+### or if its not owned by appuser, find who first
+### docker exec -it <container_id> whoami
 #################################################################
 
 DB_PATH = '/sqlite_data/database.db'
