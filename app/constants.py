@@ -1,4 +1,5 @@
 MEDIA_PATH = '/media'
+CVAT_PROJECTS_PATH = '/cvat_projects'
 ERROR_MSG_KEY = 'ERROR'
 
 IMAGES_PREFIX = 'image_r'  # images for stiching must include this prefix
