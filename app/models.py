@@ -403,8 +403,8 @@ def datatables_uploads(start: int, length: int, params):
                     UploadFileModel.approved == None))
             else:
                 statement = statement.where(UploadFileModel.approved.in_(approved_selects))
-        if params[constants.INDEX_DATATABLES_PREDICTIONS] == 'true':
-            statement = statement.where(UploadFileModel.predictions_timestamp_coco.is_not(None))
+        if params[constants.INDEX_DATATABLES_LABEL_UPDATED] == 'true':
+            statement = statement.where(UploadFileModel.label_file_updated_at.is_not(None))
         if params[constants.INDEX_DATATABLES_ANNOTATIONS] == 'true':
             statement = statement.where(UploadFileModel.annotations_updated_at_segment.is_not(None))
         if params[constants.INDEX_DATATABLES_COMPLETED] == 'true':
@@ -459,8 +459,6 @@ def datatables_uploads(start: int, length: int, params):
             UploadFileModel.panorama_confidence,
             UploadFileModel.panorama_thumbnail_path,
             UploadFileModel.approved,
-            UploadFileModel.predictions_timestamp,
-            UploadFileModel.predictions_timestamp_coco,
             UploadFileModel.sent_label_studio,
             UploadFileModel.label_studio_project,
             UploadFileModel.label_project_dir,
