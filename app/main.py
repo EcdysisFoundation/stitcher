@@ -40,6 +40,7 @@ from .models import (
     update_annotations_post,
     update_annotations_segment_post,
     update_sent_label_studio,
+    update_label_timestamp,
     update_panorama_path,
     update_predictions_post,
     update_predictions_coco_post,
@@ -269,6 +270,15 @@ async def sent_label_studio(
     """
     update_sent_label_studio(guid, project, label_project_dir, label_file)
     return {'message': f'set sent_label_studio to true for {guid} for project {project}'}
+
+
+@app.post("/updated_label/")
+async def updated_label(guid: uuid.UUID):
+    """
+    After updating the label_file first entered with sent_label_studio, record the time
+    """
+    update_label_timestamp(guid)
+    return {'message': f'label_file_updated_at now for guid {guid}'}
 
 
 @app.delete("/delete/{guid}", status_code=status.HTTP_204_NO_CONTENT)
