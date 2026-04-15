@@ -38,6 +38,7 @@ class UploadFileModelBase(SQLModel):
     predictions_timestamp_coco: datetime.datetime | None
     sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
     label_studio_project: str | None = Field(default=None)
+    label_studio_project_created_at: datetime.datetime | None
     label_project_dir: str | None = Field(default=None)
     label_file: str | None = Field(default=None)
     label_file_updated_at: datetime.datetime | None
@@ -93,6 +94,7 @@ class UploadFileModelPublic(UploadFileModelBase):
     predictions_timestamp_coco: datetime.datetime | None
     sent_label_studio: str | None
     label_studio_project: str | None
+    label_studio_project_created_at: datetime.datetime | None
     label_project_dir: str | None
     label_file: str | None
     label_file_updated_at: datetime.datetime | None
@@ -196,6 +198,7 @@ def update_panorama_path(
         rec.annotations_updated_at = None
         rec.sent_label_studio = None
         rec.label_studio_project = None
+        rec.label_studio_project_created_at = None
         rec.label_project_dir = None
         rec.label_file = None
         rec.label_file_updated_at = None
@@ -261,6 +264,7 @@ def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, u
             UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
             UploadFileModel.label_studio_project,
+            UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
             UploadFileModel.label_file,
             UploadFileModel.label_file_updated_at
@@ -285,6 +289,7 @@ def read_upload_file_abridged(guid: uuid.UUID):
             UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
             UploadFileModel.label_studio_project,
+            UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
             UploadFileModel.label_file,
             UploadFileModel.label_file_updated_at
@@ -358,6 +363,7 @@ def update_sent_label_studio(
                 detail="Item not found")
         rec.sent_label_studio = rec.panorama_path
         rec.label_studio_project = project
+        rec.label_studio_project_created_at = datetime.datetime.now(datetime.timezone.utc)
         rec.label_project_dir = label_project_dir
         rec.label_file = label_file
         rec.label_file_updated_at = datetime.datetime.now(datetime.timezone.utc)
@@ -403,8 +409,8 @@ def datatables_uploads(start: int, length: int, params):
                     UploadFileModel.approved == None))
             else:
                 statement = statement.where(UploadFileModel.approved.in_(approved_selects))
-        if params[constants.INDEX_DATATABLES_PREDICTIONS] == 'true':
-            statement = statement.where(UploadFileModel.predictions_timestamp_coco.is_not(None))
+        if params[constants.INDEX_DATATABLES_LABEL_UPDATED] == 'true':
+            statement = statement.where(UploadFileModel.label_file_updated_at.is_not(None))
         if params[constants.INDEX_DATATABLES_ANNOTATIONS] == 'true':
             statement = statement.where(UploadFileModel.annotations_updated_at_segment.is_not(None))
         if params[constants.INDEX_DATATABLES_COMPLETED] == 'true':
@@ -459,10 +465,9 @@ def datatables_uploads(start: int, length: int, params):
             UploadFileModel.panorama_confidence,
             UploadFileModel.panorama_thumbnail_path,
             UploadFileModel.approved,
-            UploadFileModel.predictions_timestamp,
-            UploadFileModel.predictions_timestamp_coco,
             UploadFileModel.sent_label_studio,
             UploadFileModel.label_studio_project,
+            UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
             UploadFileModel.label_file_updated_at,
             UploadFileModel.stitching_exception,
