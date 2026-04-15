@@ -15,7 +15,7 @@ services:
       - .:/code
       # - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
       - /pool1/srv/label-studio/mydata/stitchermedia:/media
-      - /pool1/srv/cvat-projects:/cvat_projects
+      - /pool1/srv/cvat-tasks:/cvat_projects
       - sqlite_db:/sqlite_data
     env_file:
       - ./common.env
@@ -48,7 +48,7 @@ services:
       - .:/code
       # - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
       - /pool1/srv/label-studio/mydata/stitchermedia:/media
-      - /pool1/srv/cvat-projects:/cvat_projects
+      - /pool1/srv/cvat-tasks:/cvat_projects
       - sqlite_db:/sqlite_data
     env_file:
       - ./common.env
@@ -67,7 +67,7 @@ services:
       - .:/code
       # - /Users/michaelawilson/repos/label-studio/mydata/stitchermedia:/media
       - /pool1/srv/label-studio/mydata/stitchermedia:/media
-      - /pool1/srv/cvat-projects:/cvat_projects
+      - /pool1/srv/cvat-tasks:/cvat_projects
       - sqlite_db:/sqlite_data
     env_file:
       - ./common.env
