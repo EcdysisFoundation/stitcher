@@ -373,6 +373,22 @@ def update_sent_label_studio(
 
 
 @validate_call
+def update_label_timestamp(guid: uuid.UUID):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        results = session.exec(statement)
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
+        rec.label_file_updated_at = datetime.datetime.now(datetime.timezone.utc)
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+
+
+@validate_call
 def delete_by_guid(guid: uuid.UUID):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
