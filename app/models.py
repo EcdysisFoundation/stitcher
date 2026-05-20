@@ -42,6 +42,7 @@ class UploadFileModelBase(SQLModel):
     label_project_dir: str | None = Field(default=None)
     label_file: str | None = Field(default=None)
     label_file_updated_at: datetime.datetime | None
+    label_job_id: int | None
     stitching_exception: str | None = Field(default=None)
     stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
@@ -201,6 +202,7 @@ def update_panorama_path(
         rec.label_studio_project_created_at = None
         rec.label_project_dir = None
         rec.label_file = None
+        rec.label_job_id = None
         rec.label_file_updated_at = None
         rec.annotations_segment = None
         rec.annotator_segment = None
@@ -267,6 +269,7 @@ def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, u
             UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
             UploadFileModel.label_file,
+            UploadFileModel.label_job_id,
             UploadFileModel.label_file_updated_at
         ))
         result = session.exec(statement).all()
@@ -292,6 +295,7 @@ def read_upload_file_abridged(guid: uuid.UUID):
             UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
             UploadFileModel.label_file,
+            UploadFileModel.label_job_id,
             UploadFileModel.label_file_updated_at
         ))
         try:
@@ -349,10 +353,11 @@ def update_predictions_coco_post(guid: uuid.UUID, predictions_coco: List[dict]):
 
 @validate_call
 def update_sent_label_studio(
-    guid: uuid.UUID,
-    project: str,
-    label_project_dir: str,
-    label_file: str):
+        guid: uuid.UUID,
+        project: str,
+        label_project_dir: str,
+        label_file: str,
+        label_job_id: int):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
@@ -366,6 +371,7 @@ def update_sent_label_studio(
         rec.label_studio_project_created_at = datetime.datetime.now(datetime.timezone.utc)
         rec.label_project_dir = label_project_dir
         rec.label_file = label_file
+        rec.label_job_id = label_job_id
         rec.label_file_updated_at = datetime.datetime.now(datetime.timezone.utc)
         session.add(rec)
         session.commit()
@@ -485,6 +491,7 @@ def datatables_uploads(start: int, length: int, params):
             UploadFileModel.label_studio_project,
             UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
+            UploadFileModel.label_job_id,
             UploadFileModel.label_file_updated_at,
             UploadFileModel.stitching_exception,
             UploadFileModel.stitching_exception_at,

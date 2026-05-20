@@ -259,16 +259,17 @@ async def update_predictions_coco(guid: uuid.UUID, predictions_coco: List[dict])
 
 @app.post("/sent_label_studio/")
 async def sent_label_studio(
-    guid: uuid.UUID,
-    project: str,
-    label_project_dir: str,
-    label_file: str):
+        guid: uuid.UUID,
+        project: str,
+        label_project_dir: str,
+        label_file: str,
+        label_job_id: int):
     """
     After sending the panoroma to label studio, use this endpoint to indicate the
     panorama version (panorama_path) sent to label studio by entering the guid
     of the record and set the project sent to.
     """
-    update_sent_label_studio(guid, project, label_project_dir, label_file)
+    update_sent_label_studio(guid, project, label_project_dir, label_file, label_job_id)
     return {'message': f'set sent_label_studio to true for {guid} for project {project}'}
 
 
