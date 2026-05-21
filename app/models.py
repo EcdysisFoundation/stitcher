@@ -100,6 +100,8 @@ class UploadFileModelPublic(UploadFileModelBase):
     label_project_dir: str | None
     label_file: str | None
     label_file_updated_at: datetime.datetime | None
+    label_job_id: int | None
+    label_task_id: int | None
     stitching_exception: str | None
     stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
@@ -429,7 +431,7 @@ def datatables_uploads(start: int, length: int, params):
             statement = statement.where(
                 UploadFileModel.upload_dir_name.like(f"%{params[constants.INDEX_DATATABLES_SEARCH]}%") | UploadFileModel.guid.like(f"%{params[constants.INDEX_DATATABLES_SEARCH]}%"))
         if params[constants.INDEX_DATATABLES_LSPROJECT]:
-            statement = statement.where(UploadFileModel.label_studio_project.like(f"%{params[constants.INDEX_DATATABLES_LSPROJECT]}%"))
+            statement = statement.where(UploadFileModel.label_studio_project == params[constants.INDEX_DATATABLES_LSPROJECT])
         if len(approved_selects):
             if unreviewed:
                 statement = statement.where(or_(
