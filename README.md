@@ -43,4 +43,4 @@ To undo a recent migration, run `alembic downgrade REVISION_ID` where REVISION_I
 
 ## User Interface
 
-We access the Stitcher API through a user interface integrated into an external Django project (see Django https://www.djangoproject.com/ ). The related code from this Django project has been copied to directory `ui` for the purposes of sharing here. As such, it may not remain completely up to date as we make changes and it is not configured to work as is within the deployed application in the `app` directory.
+We access the Stitcher API through a user interface integrated into an external Django project. See https://github.com/EcdysisFoundation/bugbox_open and views in urls under bugbox3.core.urls.
