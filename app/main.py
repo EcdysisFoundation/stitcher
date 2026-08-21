@@ -9,7 +9,6 @@ import zipfile
 from typing import List
 from pathlib import Path
 
-
 from fastapi import (
     Depends,
     HTTPException, FastAPI,
@@ -214,7 +213,7 @@ def index_datatables(request: Request, start: int, length: int = 10):
 async def update_stitching(
     guid: uuid.UUID,
     confidence_threshold: float = Query(
-        default=constants.DEFAULT_CONFIDENCE_LEVEL, le=0.9, ge=0.1)):
+        default=constants.DEFAULT_CONFIDENCE_LEVEL, le=1.0, ge=0.1)):
     """
     Create a new panorama from an existing upload. This will clear any predictions on the previous panorama,
     if applicable. Changing the default confidence may be helpful if a previous stitching did not work well.
@@ -373,7 +372,7 @@ async def upload_annotations_segment(file: UploadFile):
             first_label = data[0]['label'][0]
             expected_keys = ["closed", "points", "polygonlabels", "original_width", "original_height"]
             for ek in expected_keys:
-                 first_label[ek]
+                first_label[ek]
         except Exception as e:
             messages['errors'].append(
                 f'File not as expected, did you use Label Studio export json-min? Records not saved. {e}')
