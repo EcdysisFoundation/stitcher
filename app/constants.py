@@ -10,7 +10,7 @@ PANO_NAME_BASE = 'panorama'
 PANO_EXTENSION = '.jpg'
 PANO_NAME_SEPERATOR = '__'
 
-DEFAULT_CONFIDENCE_LEVEL = 0.6
+DEFAULT_CONFIDENCE_LEVEL = 0.9
 
 LABEL_STUDIO_FILTER_DESC = 'When True, filters where panorama is approved'
 
