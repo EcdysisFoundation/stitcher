@@ -443,18 +443,18 @@ def delete_by_guid(guid: uuid.UUID):
 def datatables_uploads(start: int, length: int, params):
     with Session(ENGINE) as session:
         approved_selects = []
-        unreviewed = True if params[constants.INDEX_DATATABLES_UNREVIEWED] == 'true' else False
-        approved_selects.append(None) if params[constants.INDEX_DATATABLES_UNREVIEWED] == 'true' else None
-        approved_selects.append(True) if params[constants.INDEX_DATATABLES_APPROVED] == 'true' else None
-        approved_selects.append(False) if params[constants.INDEX_DATATABLES_DISAPPROVED] == 'true' else None
+        unreviewed = True if params.get(constants.INDEX_DATATABLES_UNREVIEWED) == 'true' else False
+        approved_selects.append(None) if params.get(constants.INDEX_DATATABLES_UNREVIEWED) == 'true' else None
+        approved_selects.append(True) if params.get(constants.INDEX_DATATABLES_APPROVED) == 'true' else None
+        approved_selects.append(False) if params.get(constants.INDEX_DATATABLES_DISAPPROVED) == 'true' else None
         statement = select(UploadFileModel)
         count_statement = select(func.count()).select_from(UploadFileModel)
         records_total = session.exec(count_statement).one()
-        if params[constants.INDEX_DATATABLES_SEARCH]:
+        if params.get(constants.INDEX_DATATABLES_SEARCH):
             statement = statement.where(
-                UploadFileModel.upload_dir_name.like(f"%{params[constants.INDEX_DATATABLES_SEARCH]}%") | UploadFileModel.guid.like(f"%{params[constants.INDEX_DATATABLES_SEARCH]}%"))
-        if params[constants.INDEX_DATATABLES_LSPROJECT]:
-            statement = statement.where(UploadFileModel.label_studio_project == params[constants.INDEX_DATATABLES_LSPROJECT])
+                UploadFileModel.upload_dir_name.like(f"%{params.get(constants.INDEX_DATATABLES_SEARCH)}%") | UploadFileModel.guid.like(f"%{params.get(constants.INDEX_DATATABLES_SEARCH)}%"))
+        if params.get(constants.INDEX_DATATABLES_LSPROJECT):
+            statement = statement.where(UploadFileModel.label_studio_project == params.get(constants.INDEX_DATATABLES_LSPROJECT))
         if len(approved_selects):
             if unreviewed:
                 statement = statement.where(or_(
@@ -462,40 +462,40 @@ def datatables_uploads(start: int, length: int, params):
                     UploadFileModel.approved == None))
             else:
                 statement = statement.where(UploadFileModel.approved.in_(approved_selects))
-        if params[constants.INDEX_DATATABLES_LABEL_UPDATED] == 'true':
+        if params.get(constants.INDEX_DATATABLES_LABEL_UPDATED) == 'true':
             statement = statement.where(UploadFileModel.label_file_updated_at.is_not(None))
-        if params[constants.INDEX_DATATABLES_LABEL_FILE_REJECTED] == 'true':
+        if params.get(constants.INDEX_DATATABLES_LABEL_FILE_REJECTED) == 'true':
             statement = statement.where(UploadFileModel.label_file_rejectedis_not(None))
-        if params[constants.INDEX_DATATABLES_ANNOTATIONS] == 'true':
+        if params.get(constants.INDEX_DATATABLES_ANNOTATIONS) == 'true':
             statement = statement.where(UploadFileModel.annotations_updated_at_segment.is_not(None))
-        if params[constants.INDEX_DATATABLES_COMPLETED] == 'true':
+        if params.get(constants.INDEX_DATATABLES_COMPLETED) == 'true':
             statement = statement.where(
                 UploadFileModel.bugbox_croped_saved.is_not(None)).where(
                 UploadFileModel.bugbox_croped_saved != ''
                 )
-        if params[constants.INDEX_DATATABLES_REJECTED] == 'true':
+        if params.get(constants.INDEX_DATATABLES_REJECTED) == 'true':
             statement = statement.where(
                 UploadFileModel.bugbox_rejected.is_not(None)).where(
                 UploadFileModel.bugbox_rejected != ''
                 )
-        if params[constants.INDEX_DATATABLES_NOT_COMPLETED] == 'true':
+        if params.get(constants.INDEX_DATATABLES_NOT_COMPLETED) == 'true':
             statement = statement.where(or_(
                 UploadFileModel.bugbox_croped_saved == '',
                 UploadFileModel.bugbox_croped_saved == None
             )).where(UploadFileModel.nota_sample.is_not(True))
-        if params[constants.INDEX_DATATABLES_NEEDS_LINKED] == 'true':
+        if params.get(constants.INDEX_DATATABLES_NEEDS_LINKED) == 'true':
             statement = statement.where(
                 UploadFileModel.bugbox_sample_id == None).where(
                 UploadFileModel.nota_sample == None)
-        if params[constants.INDEX_DATATABLES_SAMPLE_LINKED] == 'true':
+        if params.get(constants.INDEX_DATATABLES_SAMPLE_LINKED) == 'true':
             statement = statement.where(
                 UploadFileModel.bugbox_sample_id.is_not(None)
             )
-        if params[constants.INDEX_DATATABLES_NOTA_SAMPLE] == 'true':
+        if params.get(constants.INDEX_DATATABLES_NOTA_SAMPLE) == 'true':
             statement = statement.where(
                 UploadFileModel.nota_sample == True
             )
-        if params[constants.INDEX_DATATABLES_HAS_DUPLICATE] == 'true':
+        if params.get(constants.INDEX_DATATABLES_HAS_DUPLICATE) == 'true':
             dup_upload_dir_name = (
                 select(UploadFileModel.upload_dir_name)
                 .group_by(UploadFileModel.upload_dir_name)
