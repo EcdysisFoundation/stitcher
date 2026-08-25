@@ -13,6 +13,7 @@ class CameraAdjuster:
     CAMERA_ADJUSTER_CHOICES["ray"] = cv.detail_BundleAdjusterRay
     CAMERA_ADJUSTER_CHOICES["reproj"] = cv.detail_BundleAdjusterReproj
     CAMERA_ADJUSTER_CHOICES["affine"] = cv.detail_BundleAdjusterAffinePartial
+    CAMERA_ADJUSTER_CHOICES["full_affine"] = cv.detail_BundleAdjusterAffine
     CAMERA_ADJUSTER_CHOICES["no"] = cv.detail_NoBundleAdjuster
 
     DEFAULT_CAMERA_ADJUSTER = list(CAMERA_ADJUSTER_CHOICES.keys())[0]
