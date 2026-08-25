@@ -42,6 +42,7 @@ class UploadFileModelBase(SQLModel):
     label_project_dir: str | None = Field(default=None)
     label_file: str | None = Field(default=None)
     label_file_updated_at: datetime.datetime | None
+    label_file_rejected: str | None = Field(default=None)
     label_job_id: int | None
     label_task_id: int | None
     stitching_exception: str | None = Field(default=None)
@@ -100,6 +101,7 @@ class UploadFileModelPublic(UploadFileModelBase):
     label_project_dir: str | None
     label_file: str | None
     label_file_updated_at: datetime.datetime | None
+    label_file_rejected: str | None
     label_job_id: int | None
     label_task_id: int | None
     stitching_exception: str | None
@@ -208,6 +210,7 @@ def update_panorama_path(
         rec.label_job_id = None
         rec.label_task_id = None
         rec.label_file_updated_at = None
+        rec.label_file_rejected = None
         rec.annotations_segment = None
         rec.annotator_segment = None
         rec.annotator_segment = None
@@ -275,7 +278,8 @@ def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, u
             UploadFileModel.label_file,
             UploadFileModel.label_job_id,
             UploadFileModel.label_task_id,
-            UploadFileModel.label_file_updated_at
+            UploadFileModel.label_file_updated_at,
+            UploadFileModel.label_file_rejected
         ))
         result = session.exec(statement).all()
         return result
@@ -302,7 +306,8 @@ def read_upload_file_abridged(guid: uuid.UUID):
             UploadFileModel.label_file,
             UploadFileModel.label_job_id,
             UploadFileModel.label_task_id,
-            UploadFileModel.label_file_updated_at
+            UploadFileModel.label_file_updated_at,
+            UploadFileModel.label_file_rejected
         ))
         try:
             return session.exec(statement).one()
@@ -403,6 +408,24 @@ def update_label_timestamp(guid: uuid.UUID):
 
 
 @validate_call
+def update_label_file_rejected(guid: uuid.UUID, label_file_rejected: str, label_job_id: int):
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(
+            UploadFileModel.guid == str(guid),
+            UploadFileModel.label_job_id == label_job_id)
+        results = session.exec(statement)
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
+        rec.label_file_rejected = label_file_rejected
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+
+
+@validate_call
 def delete_by_guid(guid: uuid.UUID):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
@@ -441,6 +464,8 @@ def datatables_uploads(start: int, length: int, params):
                 statement = statement.where(UploadFileModel.approved.in_(approved_selects))
         if params[constants.INDEX_DATATABLES_LABEL_UPDATED] == 'true':
             statement = statement.where(UploadFileModel.label_file_updated_at.is_not(None))
+        if params[constants.INDEX_DATATABLES_LABEL_FILE_REJECTED] == 'true':
+            statement = statement.where(UploadFileModel.label_file_rejectedis_not(None))
         if params[constants.INDEX_DATATABLES_ANNOTATIONS] == 'true':
             statement = statement.where(UploadFileModel.annotations_updated_at_segment.is_not(None))
         if params[constants.INDEX_DATATABLES_COMPLETED] == 'true':
@@ -502,6 +527,7 @@ def datatables_uploads(start: int, length: int, params):
             UploadFileModel.label_job_id,
             UploadFileModel.label_task_id,
             UploadFileModel.label_file_updated_at,
+            UploadFileModel.label_file_rejected,
             UploadFileModel.stitching_exception,
             UploadFileModel.stitching_exception_at,
             UploadFileModel.panorma_timestamp,
