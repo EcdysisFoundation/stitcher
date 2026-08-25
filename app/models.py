@@ -465,7 +465,7 @@ def datatables_uploads(start: int, length: int, params):
         if params.get(constants.INDEX_DATATABLES_LABEL_UPDATED) == 'true':
             statement = statement.where(UploadFileModel.label_file_updated_at.is_not(None))
         if params.get(constants.INDEX_DATATABLES_LABEL_FILE_REJECTED) == 'true':
-            statement = statement.where(UploadFileModel.label_file_rejectedis_not(None))
+            statement = statement.where(UploadFileModel.label_file_rejected.is_not(None))
         if params.get(constants.INDEX_DATATABLES_ANNOTATIONS) == 'true':
             statement = statement.where(UploadFileModel.annotations_updated_at_segment.is_not(None))
         if params.get(constants.INDEX_DATATABLES_COMPLETED) == 'true':
