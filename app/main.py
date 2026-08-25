@@ -40,6 +40,7 @@ from .models import (
     update_annotations_segment_post,
     update_sent_label_studio,
     update_label_timestamp,
+    update_label_file_rejected,
     update_panorama_path,
     update_predictions_post,
     update_predictions_coco_post,
@@ -77,7 +78,7 @@ app.mount("/static", StaticFiles(directory=constants.MEDIA_PATH), name="static")
 app.mount(
     constants.CVAT_PROJECTS_PATH,
     StaticFiles(directory=constants.CVAT_PROJECTS_PATH),
-    name = 'cvat_projects')
+    name='cvat_projects')
 
 
 @app.on_event("startup")
@@ -280,6 +281,15 @@ async def updated_label(guid: uuid.UUID):
     """
     update_label_timestamp(guid)
     return {'message': f'label_file_updated_at now for guid {guid}'}
+
+
+@app.post("/mark_labels_rejected/")
+async def mark_labels_rejected(guid: uuid.UUID, label_file_rejected: str, label_job_id: int):
+    """
+    If rejected on labeling platform, mark what the label file name is here.
+    """
+    update_label_file_rejected(guid, label_file_rejected, label_job_id)
+    return {'message': f'label_file_rejected updated to {label_file_rejected} for guid {guid}'}
 
 
 @app.delete("/delete/{guid}", status_code=status.HTTP_204_NO_CONTENT)
