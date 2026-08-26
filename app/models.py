@@ -402,6 +402,7 @@ def update_label_timestamp(guid: uuid.UUID):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
         rec.label_file_updated_at = datetime.datetime.now(datetime.timezone.utc)
+        rec.label_file_rejected = None
         session.add(rec)
         session.commit()
         session.refresh(rec)
