@@ -31,6 +31,7 @@ from .models import (
     datatables_uploads,
     delete_by_guid,
     get_stats,
+    get_panorama_path,
     read_upload_files,
     read_upload_files_abridged,
     read_upload_file,
@@ -44,7 +45,8 @@ from .models import (
     update_panorama_path,
     update_predictions_post,
     update_predictions_coco_post,
-    update_upload_file_update)
+    update_upload_file_update,
+    restore_panorama_path)
 from .models_celery import (
     CeleryTask, create_celery_db_and_tables, get_celery_read_session)
 from .utils import get_extract_path, get_stitch_img_params
@@ -140,7 +142,8 @@ async def upload_zip_images(
             os.remove(zip_path)
         messages.update({constants.ERROR_MSG_KEY: e})
         return messages
-    pano_args = get_stitch_img_params(extract_path, confidence_threshold)
+    panorama_path = get_panorama_path(extract_path)
+    pano_args = get_stitch_img_params(panorama_path, extract_path, confidence_threshold)
     update_panorama_path(**pano_args)
     background_stitch_imgs.delay(
         str(guid),
@@ -227,7 +230,8 @@ async def update_stitching(
             detail=f"Not Allowed: record.approved is set to {record.approved}"
         )
     extract_path = get_extract_path(guid)
-    pano_args = get_stitch_img_params(extract_path, confidence_threshold)
+    panorama_path = get_panorama_path(extract_path)
+    pano_args = get_stitch_img_params(panorama_path, extract_path, confidence_threshold)
     update_panorama_path(**pano_args)
     background_stitch_imgs.delay(
         str(guid),
@@ -407,6 +411,12 @@ async def upload_annotations_segment(file: UploadFile):
                 except HTTPException:
                     messages['guids_not_found'].append(guid)
     return messages
+
+
+@app.post("/restore-panorama/")
+async def restore_panorama(guid: uuid.UUID, panorama_path: Path):
+    restore_panorama_path(guid, panorama_path)
+    return {'message': f'Image for {guid} restored to {panorama_path}'}
 
 
 @app.get("/stats")
