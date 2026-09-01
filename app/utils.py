@@ -5,7 +5,6 @@ from pydantic import validate_call
 from uuid import UUID
 
 from . import constants
-from .models import get_panorama_path
 
 
 def get_image_paths(dir):
@@ -26,9 +25,8 @@ def get_extract_path(guid: UUID):
     return os.path.join(constants.MEDIA_PATH, str(guid))
 
 
-def get_pano_path(extract_dir):
+def get_pano_path(extract_dir, panorama_path):
 
-    panorama_path = get_panorama_path(extract_dir)
     if not panorama_path:
         new_filename = constants.PANO_NAME_BASE
     else:
@@ -40,7 +38,7 @@ def get_pano_path(extract_dir):
             filenumber = int(filename.replace(constants.PANO_NAME_BASE + constants.PANO_NAME_SEPERATOR, ''))
             filenumber += 1
             new_filename = constants.PANO_NAME_BASE + constants.PANO_NAME_SEPERATOR + \
-                           str(filenumber)
+                str(filenumber)
 
     return os.path.join(extract_dir, new_filename + constants.PANO_EXTENSION)
 
@@ -68,13 +66,16 @@ def load_resize_and_save_thumbnail(path, new_width, thumbnail_path):
     return
 
 
-def get_stitch_img_params(extract_path, confidence):
+def get_panorama_thumbnail_path(panorama_path: str):
+    p = Path(panorama_path)
+    return str(p.with_name(p.stem + '_thumbnail' + p.suffix))
+
+
+def get_stitch_img_params(panorama_path, extract_path, confidence):
     """
     Returns the args for models.update_panorama_path when stitching images
     """
-    panorama_path = get_pano_path(extract_path)
-    p = Path(panorama_path)
-    thumb_path = str(p.with_name(p.stem + '_thumbnail' + p.suffix))
+    thumb_path = get_panorama_thumbnail_path(panorama_path)
     return {
         'extract_path': extract_path,
         'panorama_path': panorama_path,

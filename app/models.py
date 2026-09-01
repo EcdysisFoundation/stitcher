@@ -15,6 +15,7 @@ from fastapi.encoders import jsonable_encoder
 
 from . import constants
 from .models_celery import CeleryTask
+from .utils import get_panorama_thumbnail_path
 
 
 SQLITE_URL = os.getenv('SQLITE_URL', '')  # also stated in alembic.ini
@@ -27,6 +28,10 @@ class UploadFileModelBase(SQLModel):
     extract_path: str | None = Field(default=None)
     upload_dir_name: str = Field(index=True)
     panorama_path: str | None = Field(default=None)
+    panorama_filenames: Optional[List[str]] = Field(
+        default=None,
+        sa_column=Column(JSON)
+    )
     panorama_width: int | None
     panorama_height: int | None
     panorama_thumbnail_path: str | None = Field(index=True)
@@ -89,6 +94,7 @@ class UploadFileModelPublic(UploadFileModelBase):
     extract_path: str | None
     upload_dir_name: str
     panorama_path: str | None
+    panorama_filenames: List[str] | None
     panorama_width: int | None
     panorama_height: int | None
     panorama_confidence: float | None
@@ -190,10 +196,54 @@ def update_panorama_path(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
         rec.panorama_path = str(panorama_path)
+        existing_filenames = rec.panorama_filenames or []
+        rec.panorama_filenames = existing_filenames + [str(panorama_path)]
         rec.panorama_confidence = panorama_confidence
         rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
         rec.panorama_thumbnail_path = str(panorama_thumbnail_path) if panorama_thumbnail_path else None
         # clear fields that are no longer valid
+        rec.stitching_exception = None
+        rec.stitching_exception_at = None
+        rec.predictions = []
+        rec.approved = None
+        rec.predictions_timestamp = None
+        rec.annotations = []
+        rec.annotator = None
+        rec.annotations_updated_at = None
+        rec.sent_label_studio = None
+        rec.label_studio_project = None
+        rec.label_studio_project_created_at = None
+        rec.label_project_dir = None
+        rec.label_file = None
+        rec.label_job_id = None
+        rec.label_task_id = None
+        rec.label_file_updated_at = None
+        rec.label_file_rejected = None
+        rec.annotations_segment = None
+        rec.annotator_segment = None
+        rec.annotator_segment = None
+        rec.annotations_updated_at_segment = None
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+
+
+@validate_call
+def restore_panorama_path(guid: uuid.UUID, panorama_path: Path):
+    thumb_path = get_panorama_thumbnail_path(panorama_path)
+    with Session(ENGINE) as session:
+        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        results = session.exec(statement)
+        rec = results.first()
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found")
+        rec.panorama_path = str(panorama_path)
+        rec.panorama_thumbnail_path = thumb_path
+        rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        # clear fields that are no longer valid
+        rec.panorama_confidence = None
         rec.stitching_exception = None
         rec.stitching_exception_at = None
         rec.predictions = []
@@ -272,6 +322,7 @@ def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, u
             UploadFileModel.omit_from_training,
             UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
+            UploadFileModel.panorama_filenames,
             UploadFileModel.label_studio_project,
             UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
@@ -300,6 +351,7 @@ def read_upload_file_abridged(guid: uuid.UUID):
             UploadFileModel.omit_from_training,
             UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
+            UploadFileModel.panorama_filenames,
             UploadFileModel.label_studio_project,
             UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
