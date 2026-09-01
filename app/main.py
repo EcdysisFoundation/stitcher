@@ -49,7 +49,7 @@ from .models import (
     restore_panorama_path)
 from .models_celery import (
     CeleryTask, create_celery_db_and_tables, get_celery_read_session)
-from .utils import get_extract_path, get_stitch_img_params
+from .utils import get_extract_path, get_stitch_img_params, get_pano_path
 
 
 LOGGER = logging.getLogger(__name__)
@@ -142,7 +142,8 @@ async def upload_zip_images(
             os.remove(zip_path)
         messages.update({constants.ERROR_MSG_KEY: e})
         return messages
-    panorama_path = get_panorama_path(extract_path)
+
+    panorama_path = get_pano_path(extract_path)
     pano_args = get_stitch_img_params(panorama_path, extract_path, confidence_threshold)
     update_panorama_path(**pano_args)
     background_stitch_imgs.delay(
@@ -230,7 +231,7 @@ async def update_stitching(
             detail=f"Not Allowed: record.approved is set to {record.approved}"
         )
     extract_path = get_extract_path(guid)
-    panorama_path = get_panorama_path(extract_path)
+    panorama_path = get_pano_path(extract_path, get_panorama_path(extract_path))
     pano_args = get_stitch_img_params(panorama_path, extract_path, confidence_threshold)
     update_panorama_path(**pano_args)
     background_stitch_imgs.delay(
