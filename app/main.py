@@ -143,7 +143,7 @@ async def upload_zip_images(
         messages.update({constants.ERROR_MSG_KEY: e})
         return messages
 
-    panorama_path = get_pano_path(extract_path)
+    panorama_path = get_pano_path(extract_path, get_panorama_path(extract_path))
     pano_args = get_stitch_img_params(panorama_path, extract_path, confidence_threshold)
     update_panorama_path(**pano_args)
     background_stitch_imgs.delay(
