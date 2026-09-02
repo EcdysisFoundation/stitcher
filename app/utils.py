@@ -25,12 +25,22 @@ def get_extract_path(guid: UUID):
     return os.path.join(constants.MEDIA_PATH, str(guid))
 
 
-def get_pano_path(extract_dir, panorama_path):
-
+def get_pano_path(extract_dir, panorama_path_filenames):
+    """
+    Get the path for a new image, considering previous entries.
+    If previous entries exist, the filename increments by one.
+    """
+    panorama_path, panorama_filenames = panorama_path_filenames
     if not panorama_path:
         new_filename = constants.PANO_NAME_BASE
     else:
-        filename = os.path.splitext(os.path.basename(panorama_path))[0]
+        if not panorama_filenames:
+            # entries have not been logged in panorama_filenames, so use current path
+            last_entry = panorama_path
+        else:
+            # use last path in the history
+            last_entry = panorama_filenames[-1]
+        filename = os.path.splitext(os.path.basename(last_entry))[0]
         if filename == constants.PANO_NAME_BASE:
             new_filename = constants.PANO_NAME_BASE + constants.PANO_NAME_SEPERATOR + \
                            '1'
@@ -82,3 +92,38 @@ def get_stitch_img_params(panorama_path, extract_path, confidence):
         'panorama_thumbnail_path': thumb_path,
         'panorama_confidence': confidence
     }
+
+
+def get_panorama_history(panorama_path: str | None) -> list[str]:
+    """
+    Given a path like '.../panorama__2.jpg', returns:
+    ['panorama.jpg', 'panorama__1.jpg', 'panorama__2.jpg']
+    with the parent appended to the front of each.
+    """
+    if not panorama_path:
+        return []
+
+    dir_path = str(Path(panorama_path).parent)
+    base = constants.PANO_NAME_BASE
+    sep = constants.PANO_NAME_SEPERATOR
+    ext = constants.PANO_EXTENSION
+    filename_without_ext = os.path.splitext(os.path.basename(panorama_path))[0]
+
+    # Base case: "panorama.jpg"
+    if filename_without_ext == base:
+        return [f"{base}{ext}"]
+
+    # Incremented case: "panorama__N.jpg"
+    if filename_without_ext.startswith(base + sep):
+        try:
+            current_num = int(filename_without_ext.replace(base + sep, ""))
+            history = [f"{base}{ext}"]
+            for i in range(1, current_num + 1):
+                history.append(f"{base}{sep}{i}{ext}")
+            history = [f'{dir_path}/{v}' for v in history]
+            return history
+        except ValueError:
+            pass
+
+    # Fallback for unexpected format
+    return [os.path.basename(panorama_path)]
