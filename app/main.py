@@ -31,7 +31,7 @@ from .models import (
     datatables_uploads,
     delete_by_guid,
     get_stats,
-    get_panorama_path,
+    get_panorama_path_filenames,
     read_upload_files,
     read_upload_files_abridged,
     read_upload_file,
@@ -143,7 +143,7 @@ async def upload_zip_images(
         messages.update({constants.ERROR_MSG_KEY: e})
         return messages
 
-    panorama_path = get_pano_path(extract_path, get_panorama_path(extract_path))
+    panorama_path = get_pano_path(extract_path, get_panorama_path_filenames(extract_path))
     pano_args = get_stitch_img_params(panorama_path, extract_path, confidence_threshold)
     update_panorama_path(**pano_args)
     background_stitch_imgs.delay(
@@ -220,8 +220,7 @@ async def update_stitching(
     confidence_threshold: float = Query(
         default=constants.DEFAULT_CONFIDENCE_LEVEL, le=1.0, ge=0.1)):
     """
-    Create a new panorama from an existing upload. This will clear any predictions on the previous panorama,
-    if applicable. Changing the default confidence may be helpful if a previous stitching did not work well.
+    Create a new panorama from an existing upload. This should clear no longer applicable fields.
     """
     record = read_upload_file(guid)
     if record.approved is not None:
@@ -231,7 +230,7 @@ async def update_stitching(
             detail=f"Not Allowed: record.approved is set to {record.approved}"
         )
     extract_path = get_extract_path(guid)
-    panorama_path = get_pano_path(extract_path, get_panorama_path(extract_path))
+    panorama_path = get_pano_path(extract_path, get_panorama_path_filenames(extract_path))
     pano_args = get_stitch_img_params(panorama_path, extract_path, confidence_threshold)
     update_panorama_path(**pano_args)
     background_stitch_imgs.delay(
