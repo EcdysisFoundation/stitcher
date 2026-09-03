@@ -111,13 +111,13 @@ def get_panorama_history(panorama_path: str | None) -> list[str]:
 
     # Base case: "panorama.jpg"
     if filename_without_ext == base:
-        return [f"{base}{ext}"]
+        return [f"{dir_path}/{base}{ext}"]
 
     # Incremented case: "panorama__N.jpg"
     if filename_without_ext.startswith(base + sep):
         try:
             current_num = int(filename_without_ext.replace(base + sep, ""))
-            history = [f"{base}{ext}"]
+            history = [f"{dir_path}/{base}{ext}"]
             for i in range(1, current_num + 1):
                 history.append(f"{base}{sep}{i}{ext}")
             history = [f'{dir_path}/{v}' for v in history]
