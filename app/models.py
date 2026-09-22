@@ -7,8 +7,9 @@ from uuid import UUID
 from pathlib import Path
 from fastapi import HTTPException, status
 from sqlmodel import (
-    Field, Session, SQLModel, create_engine, select, JSON, Column, col, func, or_
+    Field, Session, SQLModel, create_engine, select, JSON, Column, col, func, or_, text
 )
+from sqlalchemy import DateTime
 from sqlalchemy.orm import load_only
 from sqlalchemy.exc import NoResultFound
 from fastapi.encoders import jsonable_encoder
@@ -54,6 +55,13 @@ class UploadFileModelBase(SQLModel):
     stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
     created_at: datetime.datetime | None
+    updated_at: datetime.datetime = Field(
+        sa_column=Column(
+            DateTime(timezone=True),
+            server_default=text("CURRENT_TIMESTAMP"),
+            onupdate=lambda: datetime.datetime.now(datetime.timezone.utc)
+        )
+    )
     annotations: List[dict] | None = Field(sa_column=Column(JSON))
     annotator: int | None
     annotations_updated_at: str | None
@@ -114,6 +122,7 @@ class UploadFileModelPublic(UploadFileModelBase):
     stitching_exception_at: datetime.datetime | None
     panorma_timestamp: datetime.datetime | None
     created_at: datetime.datetime | None
+    updated_at: datetime.datetime | None
     annotator: int | None
     annotations_updated_at: str | None
     annotator_segment: int | None
@@ -333,7 +342,9 @@ def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, u
             UploadFileModel.label_job_id,
             UploadFileModel.label_task_id,
             UploadFileModel.label_file_updated_at,
-            UploadFileModel.label_file_rejected
+            UploadFileModel.label_file_rejected,
+            UploadFileModel.created_at,
+            UploadFileModel.updated_at
         ))
         result = session.exec(statement).all()
         return result
@@ -362,7 +373,9 @@ def read_upload_file_abridged(guid: uuid.UUID):
             UploadFileModel.label_job_id,
             UploadFileModel.label_task_id,
             UploadFileModel.label_file_updated_at,
-            UploadFileModel.label_file_rejected
+            UploadFileModel.label_file_rejected,
+            UploadFileModel.created_at,
+            UploadFileModel.updated_at
         ))
         try:
             return session.exec(statement).one()
@@ -588,6 +601,7 @@ def datatables_uploads(start: int, length: int, params):
             UploadFileModel.stitching_exception_at,
             UploadFileModel.panorma_timestamp,
             UploadFileModel.created_at,
+            UploadFileModel.updated_at,
             UploadFileModel.annotator,
             UploadFileModel.annotations_updated_at,
             UploadFileModel.annotator_segment,
