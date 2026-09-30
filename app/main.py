@@ -6,6 +6,7 @@ import sys
 import time
 import uuid
 import zipfile
+from datetime import datetime
 from typing import List
 from pathlib import Path
 
@@ -159,8 +160,8 @@ async def upload_zip_images(
 def list_upload_files(
         offset: int = 0,
         limit: int = Query(default=10, le=100),
-        approved: bool = Query(default=None),
-        upload_dir_name: str = Query(default=None)):
+        approved: bool | None = Query(default=None),
+        upload_dir_name: str | None = Query(default=None)):
     """
     List the uploaded zip files and their related information.
     Upload_dir_name matches records .like(upload_dir_name%)
@@ -173,13 +174,14 @@ def list_upload_files(
 def list_upload_files_abridged(
         offset: int = 0,
         limit: int = Query(default=10, le=100),
-        approved: bool = Query(default=None),
-        upload_dir_name: str = Query(default=None)):
+        approved: bool | None = Query(default=None),
+        upload_dir_name: str | None = Query(default=None),
+        updated_since: datetime | None = Query(defult=None)):
     """
     List the uploaded zip files and a limited amount of related information.
     Upload_dir_name matches records .like(upload_dir_name%)
     """
-    records = read_upload_files_abridged(offset, limit, approved, upload_dir_name)
+    records = read_upload_files_abridged(offset, limit, approved, upload_dir_name, updated_since)
     return records
 
 

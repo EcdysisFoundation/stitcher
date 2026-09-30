@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from pydantic import BaseModel, validate_call
 from uuid import UUID
@@ -318,7 +318,8 @@ def read_upload_files_abridged(
     offset: int,
     limit: int,
     approved: bool | None,
-    upload_dir_name: str | None
+    upload_dir_name: str | None,
+    updated_since: datetime | None
 ):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel)
@@ -327,6 +328,10 @@ def read_upload_files_abridged(
         if upload_dir_name is not None:
             search_pattern = f'{upload_dir_name}%'
             statement = statement.where(UploadFileModel.upload_dir_name.like(search_pattern))
+        if updated_since is not None:
+            # Subtract timedelta to allow for clock drift during sync
+            adjusted_since = updated_since - timedelta(minutes=1)
+            statement = statement.where(UploadFileModel.updated_at > adjusted_since)
         statement = statement.offset(offset).limit(limit)
         statement = statement.options(load_only(
             UploadFileModel.id,
