@@ -1,6 +1,6 @@
-import datetime
 import os
 import uuid
+from datetime import datetime, timezone
 from typing import List, Optional
 from pydantic import BaseModel, validate_call
 from uuid import UUID
@@ -39,27 +39,27 @@ class UploadFileModelBase(SQLModel):
     panorama_confidence: float | None = Field(default=None)
     approved: bool | None = Field(default=None)
     predictions: List[dict] | None = Field(sa_column=Column(JSON))
-    predictions_timestamp: datetime.datetime | None
+    predictions_timestamp: datetime | None
     predictions_coco: List[dict] | None = Field(sa_column=Column(JSON))
-    predictions_timestamp_coco: datetime.datetime | None
+    predictions_timestamp_coco: datetime | None
     sent_label_studio: str | None = Field(default=None)  # panorama_path when sent
     label_studio_project: str | None = Field(default=None)
-    label_studio_project_created_at: datetime.datetime | None
+    label_studio_project_created_at: datetime | None
     label_project_dir: str | None = Field(default=None)
     label_file: str | None = Field(default=None)
-    label_file_updated_at: datetime.datetime | None
+    label_file_updated_at: datetime | None
     label_file_rejected: str | None = Field(default=None)
     label_job_id: int | None
     label_task_id: int | None
     stitching_exception: str | None = Field(default=None)
-    stitching_exception_at: datetime.datetime | None
-    panorma_timestamp: datetime.datetime | None
-    created_at: datetime.datetime | None
-    updated_at: datetime.datetime = Field(
+    stitching_exception_at: datetime | None
+    panorma_timestamp: datetime | None
+    created_at: datetime | None
+    updated_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True),
             server_default=text("CURRENT_TIMESTAMP"),
-            onupdate=lambda: datetime.datetime.now(datetime.timezone.utc)
+            onupdate=lambda: datetime.now(timezone.utc)
         )
     )
     annotations: List[dict] | None = Field(sa_column=Column(JSON))
@@ -107,22 +107,22 @@ class UploadFileModelPublic(UploadFileModelBase):
     panorama_height: int | None
     panorama_confidence: float | None
     approved: bool | None
-    predictions_timestamp: datetime.datetime | None
-    predictions_timestamp_coco: datetime.datetime | None
+    predictions_timestamp: datetime | None
+    predictions_timestamp_coco: datetime | None
     sent_label_studio: str | None
     label_studio_project: str | None
-    label_studio_project_created_at: datetime.datetime | None
+    label_studio_project_created_at: datetime | None
     label_project_dir: str | None
     label_file: str | None
-    label_file_updated_at: datetime.datetime | None
+    label_file_updated_at: datetime | None
     label_file_rejected: str | None
     label_job_id: int | None
     label_task_id: int | None
     stitching_exception: str | None
-    stitching_exception_at: datetime.datetime | None
-    panorma_timestamp: datetime.datetime | None
-    created_at: datetime.datetime | None
-    updated_at: datetime.datetime | None
+    stitching_exception_at: datetime | None
+    panorma_timestamp: datetime | None
+    created_at: datetime | None
+    updated_at: datetime | None
     annotator: int | None
     annotations_updated_at: str | None
     annotator_segment: int | None
@@ -168,7 +168,7 @@ def create_upload_file(guid: UUID, extract_path: Path, upload_dir_name: str):
         guid=str(guid),
         extract_path=str(extract_path),
         upload_dir_name=upload_dir_name,
-        created_at=datetime.datetime.now(datetime.timezone.utc)
+        created_at=datetime.now(timezone.utc)
     )
     with Session(ENGINE) as session:
         session.add(rec)
@@ -211,7 +211,7 @@ def update_panorama_path(
         existing_filenames = rec.panorama_filenames or []
         rec.panorama_filenames = existing_filenames + [str(panorama_path)]
         rec.panorama_confidence = panorama_confidence
-        rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        rec.panorma_timestamp = datetime.now(timezone.utc)
         rec.panorama_thumbnail_path = str(panorama_thumbnail_path) if panorama_thumbnail_path else None
         # clear fields that are no longer valid
         rec.stitching_exception = None
@@ -253,7 +253,7 @@ def restore_panorama_path(guid: uuid.UUID, panorama_path: Path):
                 detail="Item not found")
         rec.panorama_path = str(panorama_path)
         rec.panorama_thumbnail_path = thumb_path
-        rec.panorma_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        rec.panorma_timestamp = datetime.now(timezone.utc)
         # clear fields that are no longer valid
         rec.panorama_confidence = None
         rec.stitching_exception = None
@@ -293,7 +293,7 @@ def record_stitching_exception(extract_path: Path, e: str):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
         rec.stitching_exception = e
-        rec.stitching_exception_at = datetime.datetime.now(datetime.timezone.utc)
+        rec.stitching_exception_at = datetime.now(timezone.utc)
         session.add(rec)
         session.commit()
         session.refresh(rec)
@@ -314,7 +314,12 @@ def read_upload_files(offset: int, limit: int, approved: bool | None, upload_dir
 
 
 @validate_call
-def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, upload_dir_name: str | None):
+def read_upload_files_abridged(
+    offset: int,
+    limit: int,
+    approved: bool | None,
+    upload_dir_name: str | None
+):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel)
         if approved is not None:
@@ -324,27 +329,34 @@ def read_upload_files_abridged(offset: int, limit: int, approved: bool | None, u
             statement = statement.where(UploadFileModel.upload_dir_name.like(search_pattern))
         statement = statement.offset(offset).limit(limit)
         statement = statement.options(load_only(
+            UploadFileModel.id,
             UploadFileModel.guid,
-            UploadFileModel.approved,
+            UploadFileModel.extract_path,
             UploadFileModel.upload_dir_name,
-            UploadFileModel.bugbox_sample_id,
-            UploadFileModel.nota_sample,
-            UploadFileModel.bugbox_croped_saved,
-            UploadFileModel.bugbox_rejected,
-            UploadFileModel.omit_from_training,
-            UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
             UploadFileModel.panorama_filenames,
+            UploadFileModel.panorama_width,
+            UploadFileModel.panorama_height,
+            UploadFileModel.panorama_thumbnail_path,
+            UploadFileModel.panorama_confidence,
+            UploadFileModel.approved,
+            UploadFileModel.sent_label_studio,
             UploadFileModel.label_studio_project,
             UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
             UploadFileModel.label_file,
-            UploadFileModel.label_job_id,
-            UploadFileModel.label_task_id,
             UploadFileModel.label_file_updated_at,
             UploadFileModel.label_file_rejected,
+            UploadFileModel.label_job_id,
+            UploadFileModel.label_task_id,
+            UploadFileModel.panorma_timestamp,
             UploadFileModel.created_at,
-            UploadFileModel.updated_at
+            UploadFileModel.updated_at,
+            UploadFileModel.bugbox_sample_id,
+            UploadFileModel.nota_sample,
+            UploadFileModel.bugbox_croped_saved,
+            UploadFileModel.bugbox_rejected,
+            UploadFileModel.omit_from_training
         ))
         result = session.exec(statement).all()
         return result
@@ -355,27 +367,34 @@ def read_upload_file_abridged(guid: uuid.UUID):
     with Session(ENGINE) as session:
         statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
         statement = statement.options(load_only(
+            UploadFileModel.id,
             UploadFileModel.guid,
-            UploadFileModel.approved,
+            UploadFileModel.extract_path,
             UploadFileModel.upload_dir_name,
-            UploadFileModel.bugbox_sample_id,
-            UploadFileModel.nota_sample,
-            UploadFileModel.bugbox_croped_saved,
-            UploadFileModel.bugbox_rejected,
-            UploadFileModel.omit_from_training,
-            UploadFileModel.panorma_timestamp,
             UploadFileModel.panorama_path,
             UploadFileModel.panorama_filenames,
+            UploadFileModel.panorama_width,
+            UploadFileModel.panorama_height,
+            UploadFileModel.panorama_thumbnail_path,
+            UploadFileModel.panorama_confidence,
+            UploadFileModel.approved,
+            UploadFileModel.sent_label_studio,
             UploadFileModel.label_studio_project,
             UploadFileModel.label_studio_project_created_at,
             UploadFileModel.label_project_dir,
             UploadFileModel.label_file,
-            UploadFileModel.label_job_id,
-            UploadFileModel.label_task_id,
             UploadFileModel.label_file_updated_at,
             UploadFileModel.label_file_rejected,
+            UploadFileModel.label_job_id,
+            UploadFileModel.label_task_id,
+            UploadFileModel.panorma_timestamp,
             UploadFileModel.created_at,
-            UploadFileModel.updated_at
+            UploadFileModel.updated_at,
+            UploadFileModel.bugbox_sample_id,
+            UploadFileModel.nota_sample,
+            UploadFileModel.bugbox_croped_saved,
+            UploadFileModel.bugbox_rejected,
+            UploadFileModel.omit_from_training
         ))
         try:
             return session.exec(statement).one()
@@ -404,7 +423,7 @@ def update_predictions_post(guid: uuid.UUID, predictions: List[dict]):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
         rec.predictions = jsonable_encoder(predictions)
-        rec.predictions_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        rec.predictions_timestamp = datetime.now(timezone.utc)
         session.add(rec)
         session.commit()
         session.refresh(rec)
@@ -422,7 +441,7 @@ def update_predictions_coco_post(guid: uuid.UUID, predictions_coco: List[dict]):
                 detail="Item not found")
         prediction_result = jsonable_encoder(predictions_coco)[0]
         rec.predictions_coco = prediction_result['predictions']
-        rec.predictions_timestamp_coco = datetime.datetime.now(datetime.timezone.utc)
+        rec.predictions_timestamp_coco = datetime.now(timezone.utc)
         rec.panorama_width = prediction_result['original_width']
         rec.panorama_height = prediction_result['original_height']
         session.add(rec)
@@ -448,12 +467,12 @@ def update_sent_label_studio(
                 detail="Item not found")
         rec.sent_label_studio = rec.panorama_path
         rec.label_studio_project = project
-        rec.label_studio_project_created_at = datetime.datetime.now(datetime.timezone.utc)
+        rec.label_studio_project_created_at = datetime.now(timezone.utc)
         rec.label_project_dir = label_project_dir
         rec.label_file = label_file
         rec.label_job_id = label_job_id
         rec.label_task_id = label_task_id
-        rec.label_file_updated_at = datetime.datetime.now(datetime.timezone.utc)
+        rec.label_file_updated_at = datetime.now(timezone.utc)
         session.add(rec)
         session.commit()
         session.refresh(rec)
@@ -469,7 +488,7 @@ def update_label_timestamp(guid: uuid.UUID):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
-        rec.label_file_updated_at = datetime.datetime.now(datetime.timezone.utc)
+        rec.label_file_updated_at = datetime.now(timezone.utc)
         rec.label_file_rejected = None
         session.add(rec)
         session.commit()
