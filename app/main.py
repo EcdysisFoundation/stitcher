@@ -176,12 +176,13 @@ def list_upload_files_abridged(
         limit: int = Query(default=10, le=100),
         approved: bool | None = Query(default=None),
         upload_dir_name: str | None = Query(default=None),
-        updated_since: datetime | None = Query(default=None)):
+        updated_since: datetime | None = Query(default=None),
+        include_deleted: bool | None = Query(default=None)):
     """
     List the uploaded zip files and a limited amount of related information.
     Upload_dir_name matches records .like(upload_dir_name%)
     """
-    records = read_upload_files_abridged(offset, limit, approved, upload_dir_name, updated_since)
+    records = read_upload_files_abridged(offset, limit, approved, upload_dir_name, updated_since, include_deleted)
     return records
 
 

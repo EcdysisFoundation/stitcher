@@ -62,6 +62,7 @@ class UploadFileModelBase(SQLModel):
             onupdate=lambda: datetime.now(timezone.utc)
         )
     )
+    deleted_at: datetime | None = Field(default=None)  # Soft delete flag
     annotations: List[dict] | None = Field(sa_column=Column(JSON))
     annotator: int | None
     annotations_updated_at: str | None
@@ -141,7 +142,8 @@ class UploadFileWithCeleryTask(SQLModel):
 @validate_call
 def update_upload_file_update(guid: UUID, upload_file: UploadFileUpdate):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(col(UploadFileModel.guid) == str(guid))
         try:
             rec = session.exec(statement).one()
         except NoResultFound:
@@ -181,7 +183,8 @@ def get_panorama_path_filenames(extract_path: Path):
     Returns (current, all) filenames.
     """
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
         if not results:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -200,7 +203,8 @@ def update_panorama_path(
         panorama_confidence: float,
         panorama_thumbnail_path: Path | None):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
         rec = results.first()
         if not rec:
@@ -244,7 +248,8 @@ def update_panorama_path(
 def restore_panorama_path(guid: uuid.UUID, panorama_path: Path):
     thumb_path = get_panorama_thumbnail_path(panorama_path)
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
         rec = results.first()
         if not rec:
@@ -285,7 +290,8 @@ def restore_panorama_path(guid: uuid.UUID, panorama_path: Path):
 @validate_call
 def record_stitching_exception(extract_path: Path, e: str):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.extract_path == str(extract_path))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.extract_path == str(extract_path))
         results = session.exec(statement)
         rec = results.first()
         if not rec:
@@ -302,7 +308,7 @@ def record_stitching_exception(extract_path: Path, e: str):
 @validate_call
 def read_upload_files(offset: int, limit: int, approved: bool | None, upload_dir_name: str | None):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel)
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
         if approved is not None:
             statement = statement.where(UploadFileModel.approved == approved)
         if upload_dir_name is not None:
@@ -319,10 +325,14 @@ def read_upload_files_abridged(
     limit: int,
     approved: bool | None,
     upload_dir_name: str | None,
-    updated_since: datetime | None
+    updated_since: datetime | None,
+    include_deleted: bool | None
 ):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel)
+        if include_deleted:
+            statement = select(UploadFileModel)
+        else:
+            statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
         if approved is not None:
             statement = statement.where(UploadFileModel.approved == approved)
         if upload_dir_name is not None:
@@ -330,7 +340,7 @@ def read_upload_files_abridged(
             statement = statement.where(UploadFileModel.upload_dir_name.like(search_pattern))
         if updated_since is not None:
             # Subtract timedelta to allow for clock drift during sync
-            adjusted_since = updated_since - timedelta(minutes=1)
+            adjusted_since = updated_since - timedelta(minutes=4)
             statement = statement.where(UploadFileModel.updated_at > adjusted_since)
         statement = statement.offset(offset).limit(limit)
         statement = statement.options(load_only(
@@ -370,7 +380,8 @@ def read_upload_files_abridged(
 @validate_call
 def read_upload_file_abridged(guid: uuid.UUID):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(col(UploadFileModel.guid) == str(guid))
         statement = statement.options(load_only(
             UploadFileModel.id,
             UploadFileModel.guid,
@@ -410,7 +421,8 @@ def read_upload_file_abridged(guid: uuid.UUID):
 @validate_call
 def read_upload_file(guid: uuid.UUID):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(col(UploadFileModel.guid) == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(col(UploadFileModel.guid) == str(guid))
         try:
             return session.exec(statement).one()
         except NoResultFound:
@@ -420,7 +432,8 @@ def read_upload_file(guid: uuid.UUID):
 @validate_call
 def update_predictions_post(guid: uuid.UUID, predictions: List[dict]):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
         rec = results.first()
         if not rec:
@@ -437,7 +450,8 @@ def update_predictions_post(guid: uuid.UUID, predictions: List[dict]):
 @validate_call
 def update_predictions_coco_post(guid: uuid.UUID, predictions_coco: List[dict]):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
         rec = results.first()
         if not rec:
@@ -463,7 +477,8 @@ def update_sent_label_studio(
         label_job_id: int,
         label_task_id: int):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
         rec = results.first()
         if not rec:
@@ -486,7 +501,8 @@ def update_sent_label_studio(
 @validate_call
 def update_label_timestamp(guid: uuid.UUID):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
         rec = results.first()
         if not rec:
@@ -503,7 +519,8 @@ def update_label_timestamp(guid: uuid.UUID):
 @validate_call
 def update_label_file_rejected(guid: uuid.UUID, label_file_rejected: str, label_job_id: int):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(
             UploadFileModel.guid == str(guid),
             UploadFileModel.label_job_id == label_job_id)
         results = session.exec(statement)
@@ -528,8 +545,10 @@ def delete_by_guid(guid: uuid.UUID):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Item not found")
-        session.delete(rec)
+        rec.deleted_at = datetime.now(timezone.utc)
+        session.add(rec)
         session.commit()
+        session.refresh(rec)
 
 
 @validate_call
@@ -540,7 +559,9 @@ def datatables_uploads(start: int, length: int, params):
         approved_selects.append(None) if params.get(constants.INDEX_DATATABLES_UNREVIEWED) == 'true' else None
         approved_selects.append(True) if params.get(constants.INDEX_DATATABLES_APPROVED) == 'true' else None
         approved_selects.append(False) if params.get(constants.INDEX_DATATABLES_DISAPPROVED) == 'true' else None
-        statement = select(UploadFileModel)
+
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+
         count_statement = select(func.count()).select_from(UploadFileModel)
         records_total = session.exec(count_statement).one()
         if params.get(constants.INDEX_DATATABLES_SEARCH):
@@ -650,7 +671,8 @@ def datatables_uploads(start: int, length: int, params):
 @validate_call
 def update_annotations_post(guid: uuid.UUID, annotations: List[dict] | None, annotator: int, updated_at: str):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
         rec = results.first()
         if not rec:
@@ -672,7 +694,8 @@ def update_annotations_post(guid: uuid.UUID, annotations: List[dict] | None, ann
 def update_annotations_segment_post(
         guid: uuid.UUID, annotations_segment: List[dict] | None, annotator_segment: int, updated_at: str):
     with Session(ENGINE) as session:
-        statement = select(UploadFileModel).where(UploadFileModel.guid == str(guid))
+        statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
+        statement = statement.where(UploadFileModel.guid == str(guid))
         results = session.exec(statement)
         rec = results.first()
         if not rec:
@@ -697,21 +720,24 @@ def get_stats():
             UploadFileModel.label_studio_project,
             func.count(UploadFileModel.label_studio_project).label(
                 "distinct_ls_project_count")).where(
-                UploadFileModel.label_studio_project is not None).group_by(UploadFileModel.label_studio_project)
+                UploadFileModel.label_studio_project is not None).where(
+                UploadFileModel.deleted_at.is_(None)).group_by(UploadFileModel.label_studio_project)
         ls_results = session.exec(ls_statement).all()
         ls_results = [tuple(v) for v in ls_results if v[0]]
-        unreviewed_statement = select(func.count(UploadFileModel.id)).where(UploadFileModel.approved == None)
+        unreviewed_statement = select(func.count(UploadFileModel.id)).where(
+            UploadFileModel.deleted_at.is_(None)).where(UploadFileModel.approved == None)
         unreviewed_count = session.exec(unreviewed_statement).one()
-        retake_statement = select(func.count(UploadFileModel.id)).where(UploadFileModel.approved == False)
+        retake_statement = select(func.count(UploadFileModel.id)).where(
+            UploadFileModel.deleted_at.is_(None)).where(UploadFileModel.approved == False)
         retake_count = session.exec(retake_statement).one()
         needs_linked_statement = select(func.count(UploadFileModel.id)).where(
                 UploadFileModel.bugbox_sample_id == None).where(
-                UploadFileModel.nota_sample == None)
+                UploadFileModel.nota_sample == None).where(UploadFileModel.deleted_at.is_(None))
         needs_linked_count = session.exec(needs_linked_statement).one()
         not_completed_statement = select(func.count(UploadFileModel.id)).where(or_(
                 UploadFileModel.bugbox_croped_saved == '',
                 UploadFileModel.bugbox_croped_saved == None
-            )).where(UploadFileModel.nota_sample.is_not(True))
+            )).where(UploadFileModel.nota_sample.is_not(True)).where(UploadFileModel.deleted_at.is_(None))
         not_completed_count = session.exec(not_completed_statement).one()
         stats.update({
             "label_studio_projects": ls_results if ls_results else None,
