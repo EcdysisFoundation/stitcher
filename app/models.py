@@ -717,35 +717,49 @@ def update_annotations_segment_post(
 
 def get_stats():
     with Session(ENGINE) as session:
-        stats = {}
-        ls_statement = select(
-            UploadFileModel.label_studio_project,
-            func.count(UploadFileModel.label_studio_project).label(
-                "distinct_ls_project_count")).where(
-                UploadFileModel.label_studio_project is not None).where(
-                UploadFileModel.deleted_at.is_(None)).group_by(UploadFileModel.label_studio_project)
-        ls_results = session.exec(ls_statement).all()
-        ls_results = [tuple(v) for v in ls_results if v[0]]
-        unreviewed_statement = select(func.count(UploadFileModel.id)).where(
-            UploadFileModel.deleted_at.is_(None)).where(UploadFileModel.approved == None)
-        unreviewed_count = session.exec(unreviewed_statement).one()
-        retake_statement = select(func.count(UploadFileModel.id)).where(
-            UploadFileModel.deleted_at.is_(None)).where(UploadFileModel.approved == False)
-        retake_count = session.exec(retake_statement).one()
-        needs_linked_statement = select(func.count(UploadFileModel.id)).where(
-                UploadFileModel.bugbox_sample_id == None).where(
-                UploadFileModel.nota_sample == None).where(UploadFileModel.deleted_at.is_(None))
-        needs_linked_count = session.exec(needs_linked_statement).one()
-        not_completed_statement = select(func.count(UploadFileModel.id)).where(or_(
-                UploadFileModel.bugbox_croped_saved == '',
-                UploadFileModel.bugbox_croped_saved == None
-            )).where(UploadFileModel.nota_sample.is_not(True)).where(UploadFileModel.deleted_at.is_(None))
-        not_completed_count = session.exec(not_completed_statement).one()
-        stats.update({
-            "label_studio_projects": ls_results if ls_results else None,
+        ls_statement = (
+            select(
+                UploadFileModel.label_studio_project,
+                func.count(UploadFileModel.label_studio_project).label(
+                    "distinct_ls_project_count"
+                ),
+            )
+            .where(
+                UploadFileModel.label_studio_project.is_not(None),
+                UploadFileModel.deleted_at.is_(None),
+            )
+            .group_by(UploadFileModel.label_studio_project)
+        )
+        ls_results = [tuple(row) for row in session.exec(ls_statement).all()]
+        # Active base filter applied to subsequent scalar counts
+        active_files = select(func.count(UploadFileModel.id)).where(
+            UploadFileModel.deleted_at.is_(None)
+        )
+        unreviewed_count = session.exec(
+            active_files.where(UploadFileModel.approved.is_(None))
+        ).one()
+        retake_count = session.exec(
+            active_files.where(UploadFileModel.approved.is_(False))
+        ).one()
+        needs_linked_count = session.exec(
+            active_files.where(
+                UploadFileModel.bugbox_sample_id.is_(None),
+                UploadFileModel.nota_sample.is_(None),
+            )
+        ).one()
+        not_completed_count = session.exec(
+            active_files.where(
+                or_(
+                    UploadFileModel.bugbox_croped_saved == "",
+                    UploadFileModel.bugbox_croped_saved.is_(None),
+                ),
+                UploadFileModel.nota_sample.is_not(True),
+            )
+        ).one()
+        return {
+            "label_studio_projects": ls_results or None,
             "unreviewed_count": unreviewed_count,
             "retake_count": retake_count,
             "needs_linked_count": needs_linked_count,
             "not_completed_count": not_completed_count,
-        })
-        return stats
+        }
