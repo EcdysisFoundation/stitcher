@@ -95,33 +95,3 @@ def background_stitch_imgs(
 @celery.task()
 def create_label_thumbnail(extract_dir: Path):
     label_resize_thumbnail(extract_dir)
-
-
-@celery.task()
-def backpopulate_panorama_filenames(batch_size: int = 200):
-    """
-    Temporary task to populate new field. Can be removed after use
-    """
-    with Session(ENGINE) as session:
-        # 1. Fetch ONLY id and panorama_path (ignores heavy JSON columns)
-        statement = select(UploadFileModel.id, UploadFileModel.panorama_path).where(
-            UploadFileModel.panorama_path.is_not(None)
-        )
-        rows = session.exec(statement).all()
-        total = len(rows)
-        print(f"Found {total} records to process.")
-
-        # 2. Process and commit in batches
-        for i in range(0, total, batch_size):
-            batch = rows[i : i + batch_size]
-            for record_id, pano_path in batch:
-                history = get_panorama_history(pano_path)
-
-                # Fetch individual record for update
-                rec = session.get(UploadFileModel, record_id)
-                if rec:
-                    rec.panorama_filenames = history
-                    session.add(rec)
-
-            session.commit()
-            print(f"Processed {min(i + batch_size, total)}/{total} records...")
