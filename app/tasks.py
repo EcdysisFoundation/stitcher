@@ -4,14 +4,12 @@ import logging
 import sys
 import cv2 as cv
 from pathlib import Path
-from sqlmodel import Session, select
 
 from .celery_app import celery
 from .constants import STITCHER_LABEL_IMG, STITCHER_LABEL_THUMB_IMG
 from .models_celery import CeleryTask, get_celery_session
 from .stitching import AffineStitcher
-from .utils import get_image_strs, load_resize_and_save_thumbnail, get_panorama_history
-from .models import ENGINE, UploadFileModel
+from .utils import get_image_strs, load_resize_and_save_thumbnail
 
 
 logger = logging.getLogger(__name__)
