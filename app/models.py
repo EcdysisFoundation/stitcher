@@ -562,7 +562,9 @@ def datatables_uploads(start: int, length: int, params):
 
         statement = select(UploadFileModel).where(UploadFileModel.deleted_at.is_(None))
 
-        count_statement = select(func.count()).select_from(UploadFileModel)
+        count_statement = select(func.count(UploadFileModel.id)).where(
+            UploadFileModel.deleted_at.is_(None)
+        )
         records_total = session.exec(count_statement).one()
         if params.get(constants.INDEX_DATATABLES_SEARCH):
             statement = statement.where(
