@@ -367,6 +367,7 @@ def read_upload_files_abridged(
             UploadFileModel.panorma_timestamp,
             UploadFileModel.created_at,
             UploadFileModel.updated_at,
+            UploadFileModel.deleted_at,
             UploadFileModel.bugbox_sample_id,
             UploadFileModel.nota_sample,
             UploadFileModel.bugbox_croped_saved,
